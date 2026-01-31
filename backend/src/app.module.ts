@@ -2,12 +2,15 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
+import { CommonModule } from './common/common.module';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 @Module({
   imports: [
+    //Configure TypeORM
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -15,12 +18,16 @@ dotenv.config();
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: ['dist/**/*.entity.js'],
+      entities: ['dist/**/*.entity.{ts,js}'],
       migrations: ['dist/src/migrations/*.js'],
       synchronize: false, // Use migrations instead of auto-sync
       migrationsRun: true,
       logging: true,
-    })
+    }),
+
+    //Modules
+    CommonModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
