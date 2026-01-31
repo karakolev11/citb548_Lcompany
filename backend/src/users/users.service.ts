@@ -4,37 +4,51 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { UserRoles } from 'src/common/enums/user-roles.enum';
 
 @Injectable()
 export class UsersService {
   
   constructor(@InjectRepository(User) private userRepository: Repository<User>) {}
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  public async create(createUserDto: CreateUserDto): Promise<User> {
+    const user = new User();
+    user.username = createUserDto.username;
+    user.email = createUserDto.email;
+    user.password = createUserDto.password;
+    user.fullName = createUserDto.fullName ?? '';
+    user.role = createUserDto.role ?? UserRoles.CUSTOMER;
+
+    return await this.userRepository.save(createUserDto);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  public async findAll(): Promise<User[]> {
+    return await this.userRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  public async findOne(id: number): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { id } });
   }
 
-  async findOneByUsername(username: string): Promise<User | null> {
+  public async findOneByUsername(username: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { username } });
   }
   
-  async findOneByEmail(email: string): Promise<User | null> {
+  public async findOneByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { email } });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  public async update(id: number, updateUserDto: UpdateUserDto): Promise<User | null> {
+    const user = await this.findOne(id);
+    if (!user) {
+      return null;
+    }
+    Object.assign(user, updateUserDto);
+    return await this.userRepository.save(user);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  public async softDelete(id: number): Promise<boolean> {
+    const result = await this.userRepository.softDelete(id);
+    return result.affected! > 0;
   }
 }
