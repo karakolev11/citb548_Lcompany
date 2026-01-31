@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
+import { CompanyModule } from './company/company.module';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -30,6 +31,7 @@ dotenv.config();
     CommonModule,
     UsersModule,
     AuthModule,
+    CompanyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

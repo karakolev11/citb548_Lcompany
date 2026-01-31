@@ -1,6 +1,6 @@
 import { BaseEntity } from "src/common/entities/base.entity";
-import { UserRoles } from "src/common/enums/user-roles.enum";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, ManyToOne, JoinColumn } from "typeorm";
+import { Role } from "src/common/entities/role.entity";
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
@@ -14,9 +14,11 @@ export class User extends BaseEntity {
     @Column({ unique: true })
     email: string;
 
-    @Column({ nullable: true, name: 'full_name' })
-    fullName: string;
+    @Column()
+    roleId: number;
 
-    @Column({ type: 'enum', enum: UserRoles })
-    role: UserRoles;
+    @ManyToOne(() => Role, role => role.users)
+    @JoinColumn({ name: 'role_id' })
+    role: Role;
+
 }
