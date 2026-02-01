@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { CompanyModule } from './company/company.module';
+import { ShipmentsModule } from './shipments/shipments.module';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -32,6 +33,7 @@ dotenv.config();
     UsersModule,
     AuthModule,
     CompanyModule,
+    ShipmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
