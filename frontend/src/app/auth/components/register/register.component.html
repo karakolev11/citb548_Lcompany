@@ -1,1 +1,53 @@
-<p>register works!</p>
+<section class="bg-home d-flex align-items-center position-relative" style="background: url('assets/images/shape01.png') center;">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="card form-signin p-4 rounded shadow">
+                    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+                        <img src="assets/images/logo-icon.png" class="avatar avatar-small mb-4 d-block mx-auto" alt="">
+                        <h5 class="mb-3 text-center">Register your account</h5>
+
+                        <div class="form-floating mb-2">
+                            <input type="text" class="form-control" id="floatingInput" placeholder="johnDoe" formControlName="username">
+                            <label for="floatingInput">Username</label>
+                            <div *ngIf="form.get('username')?.touched && form.get('username')?.invalid" class="text-danger small mt-1">
+                                <div *ngIf="form.get('username')?.errors?.['required']">Username is required.</div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-2">
+                            <input type="email" class="form-control" id="floatingEmail" placeholder="name@example.com" formControlName="email">
+                            <label for="floatingEmail">Email Address</label>
+                            <div *ngIf="form.get('email')?.touched && form.get('email')?.invalid" class="text-danger small mt-1">
+                                <div *ngIf="form.get('email')?.errors?.['required']">Email is required.</div>
+                                <div *ngIf="form.get('email')?.errors?.['email']">Enter a valid email.</div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="floatingPassword" placeholder="Password" formControlName="password">
+                            <label for="floatingPassword">Password</label>
+                            <div *ngIf="form.get('password')?.touched && form.get('password')?.invalid" class="text-danger small mt-1">
+                                <div *ngIf="form.get('password')?.errors?.['required']">Password is required.</div>
+                                <div *ngIf="form.get('password')?.errors?.['minlength']">Password must be at least 8 characters.</div>
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
+                            <label class="form-check-label" for="flexCheckDefault">I Accept <a href="javascript:void(0)" class="text-primary">Terms And Condition</a></label>
+                        </div>
+
+                        <button class="btn btn-primary w-100" type="submit" [disabled]="form.invalid">Register</button>
+
+                        <div class="col-12 text-center mt-3">
+                            <p class="mb-0 mt-3"><small class="text-dark me-2">Already have an account ?</small> <a routerLink="/auth/login" class="text-dark fw-bold">Sign in</a></p>
+                        </div><!--end col-->
+
+                        <p class="mb-0 text-muted mt-3 text-center">© {{year}} F115725.</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

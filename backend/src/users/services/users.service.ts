@@ -15,8 +15,9 @@ export class UsersService {
     user.username = createUserDto.username;
     user.email = createUserDto.email;
     user.password = createUserDto.password;
+    user.roleId = 2; // Default role ID for now
 
-    return await this.userRepository.save(createUserDto);
+    return await this.userRepository.save(user);
   }
 
   public async findAll(): Promise<User[]> {

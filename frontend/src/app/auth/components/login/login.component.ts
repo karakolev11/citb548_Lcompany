@@ -1,5 +1,5 @@
 
-import { NgOptimizedImage } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Component } from '@angular/core';
 import {
   MatCard,
@@ -12,6 +12,9 @@ import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
+import { LoginRequest } from '../../../models/auth.models';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +24,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatInputModule,
     ReactiveFormsModule,
     MatIconModule,
+    RouterLink,
+    CommonModule
   ],
   standalone: true,
   templateUrl: './login.component.html',
@@ -28,19 +33,21 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class LoginComponent {
 
-  year = new Date().getFullYear()
+  year = new Date().getFullYear();
   
   form = new FormGroup({
-    email: new FormControl('', [Validators.required, Validators.email]),
+    username: new FormControl('', [Validators.required]),
     password: new FormControl('', [
       Validators.required,
-      Validators.minLength(8),
     ]),
   });
 
+  constructor(
+    private readonly authService: AuthService
+  ) {}
+
   onSubmit() {
-    if (this.form.valid) {
-      console.log(this.form.value);
-    }
+    const payload: LoginRequest = this.form.value as LoginRequest;
+    this.authService.login(payload);
   }
 }

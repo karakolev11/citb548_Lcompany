@@ -9,6 +9,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS for frontend
+  app.enableCors({
+    origin: 'http://localhost:4200',
+    credentials: true,
+  });
+
+  // Set global API prefix
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('Logistics Company API')
     .setDescription('List of API endpoints for the Logistics Company application')

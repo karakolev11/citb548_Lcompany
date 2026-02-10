@@ -7,6 +7,6 @@ export interface LoginRequest {
 
 export interface AuthResponse {
     user: User;
-    token?: string;
+    access_token?: string;
     [key: string]: any;
 }
