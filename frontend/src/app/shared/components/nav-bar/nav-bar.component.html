@@ -1,0 +1,46 @@
+<header id="topnav" class="defaultscroll sticky" (window:scroll)="windowScroll()" [class]="navClass">
+  <div class="container">
+    <!-- Logo container-->
+    <div>
+      <a class="logo" routerLink="/index">
+        <img src="assets/images/logo-dark.png" class="l-dark logo-light-mode" height="24" alt="">
+      </a>
+    </div>
+
+    <!--Login button Start-->
+    <ul class="buy-button list-inline mb-0">
+      <li class="list-inline-item mb-0">
+        <a href="javascript:void(0)" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight"
+          aria-controls="offcanvasRight" >
+          <div class="btn btn-icon btn-pills btn-soft-primary" id="settingbtn"><i-feather name="settings"
+              class="fea icon-sm"></i-feather></div>
+        </a>
+      </li>
+
+      <li class="list-inline-item ps-2 mb-0">
+        <a href="https://1.envato.market/landrick" target="_blank">
+          <div class="btn btn-icon btn-pills btn-primary" id="settingbtn"><i-feather name="shopping-cart"
+              class="fea icon-sm"></i-feather></div>
+        </a>
+      </li>
+    </ul>
+    <!--Login button End-->
+
+    <div id="navigation">
+      <!-- Navigation Menu-->
+      <ul class="navigation-menu" [class]="navClass">
+        <li><a routerLink="/index-blog" class="nav-link-ref">Home</a></li>
+
+        <li><a routerLink="/blog-about" class="nav-link-ref">About</a></li>
+
+        <li><a href="javascript:void(0)" class="nav-link-ref">Lifestyle</a></li>
+
+        <li><a href="javascript:void(0)" class="nav-link-ref">Technology</a></li>
+      </ul>
+      <!--end navigation menu-->
+    </div>
+    <!--end navigation-->
+
+  </div>
+  <!--end container-->
+</header>

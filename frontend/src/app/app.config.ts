@@ -1,8 +1,10 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
+import { FeatherModule } from 'angular-feather';
+import { allIcons } from 'angular-feather/icons';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,5 +20,6 @@ export const appConfig: ApplicationConfig = {
         return next(req);
       }])
     ),
+    importProvidersFrom(FeatherModule.pick(allIcons))
   ]
 };

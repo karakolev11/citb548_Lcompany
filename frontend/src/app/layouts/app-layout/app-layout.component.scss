@@ -1,0 +1,20 @@
+.app-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+app-nav-bar {
+  display: block;
+  width: 100%;
+}
+
+.app-layout-content {
+  flex: 1;
+  padding-top: 70px;
+}
+
+app-footer {
+  margin-top: auto;
+}
+

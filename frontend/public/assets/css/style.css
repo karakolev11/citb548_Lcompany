@@ -55,7 +55,7 @@ p {
   transition: all 0.5s ease;
 }
 #topnav .logo {
-  float: right;
+  float: left;
   color: #3c4858 !important;
 }
 #topnav .logo .l-dark,
@@ -131,7 +131,7 @@ p {
   margin-bottom: 0;
 }
 #topnav .buy-button {
-  float: left;
+  float: right;
   line-height: 74px;
 }
 #topnav .buy-button > li {
@@ -2787,7 +2787,7 @@ p {
   height: 40px;
   top: 30px;
   right: 80%;
-  background: url("../images/process.png") center center no-repeat;
+  /* background: url("../images/process.png") center center no-repeat; */
   z-index: 1;
 }
 @media (max-width: 767px) {
@@ -3590,7 +3590,8 @@ p {
           clip-path: polygon(0 0, 100% 0, 50% 100%, 0% 100%);
 }
 .bg-animation-left.task-management-home:after {
-  background: url("../images/task/bg.png") #2f55d4;
+  /* background: url("../images/task/bg.png") #2f55d4; */
+  background: #2f55d4;
   width: 100%;
   -webkit-clip-path: circle(65% at 40% 25%);
           clip-path: circle(65% at 40% 25%);
