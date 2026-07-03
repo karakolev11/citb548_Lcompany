@@ -9,10 +9,12 @@ import { Employee } from './entities/employee.entity';
 import { Customer } from './entities/customer.entity';
 import { CustomerService } from './services/customer.service';
 import { EmployeeService } from './services/employee.service';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { RoleGuard } from 'src/auth/role.guard';
 
 @Module({
   controllers: [UsersController, EmployeesController, CustomersController],
-  providers: [UsersService, CustomerService, EmployeeService],
+  providers: [UsersService, CustomerService, EmployeeService, AuthGuard, RoleGuard],
   imports: [TypeOrmModule.forFeature([User, Employee, Customer])],
   exports: [UsersService, CustomerService, EmployeeService],
 })

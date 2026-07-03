@@ -2,6 +2,8 @@
 .agents/
 .github/
 skills-lock.json
+CONTEXT.md
+plan-logisticsCompanySystem.prompt.md
 
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
