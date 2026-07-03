@@ -7,11 +7,14 @@ import { Company } from "./company.entity";
 export class Office extends BaseEntity {
 
     @Column()
-    name: string;
+    name!: string;
 
     @Column()
-    location: string;
+    location!: string;
+
+    @Column({ type: 'numeric', name: 'order_price', default: 0 })
+    orderPrice!: number;
 
     @ManyToOne(() => Company, company => company.offices)
-    company: Company;
+    company!: Company;
 }    

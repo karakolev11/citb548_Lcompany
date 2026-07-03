@@ -2,6 +2,7 @@ import { BaseEntity } from "src/common/entities/base.entity";
 import { Column, Entity, ManyToOne, JoinColumn } from "typeorm";
 import { Customer } from "src/users/entities/customer.entity";
 import { Office } from "src/company/entities/office.entity";
+import { ShipmentStatus } from "../enums/shipment-status.enum";
 
 @Entity({ name: 'shipments' })
 export class Shipment extends BaseEntity {
@@ -28,7 +29,25 @@ export class Shipment extends BaseEntity {
 	officeId?: number;
 
 	@Column({ type: 'numeric' })
-	weight: number;
+	weight!: number;
+
+	@Column({ type: 'enum', enum: ShipmentStatus, default: ShipmentStatus.PENDING })
+	status!: ShipmentStatus;
+
+	@Column({ unique: true })
+	trackingNumber!: string;
+
+	@Column({ nullable: true })
+	description?: string;
+
+	@Column({ type: 'timestamptz', nullable: true })
+	estimatedDeliveryDate?: Date;
+
+	@Column({ type: 'timestamptz', nullable: true })
+	actualDeliveryDate?: Date;
+
+	@Column({ type: 'numeric', nullable: true })
+	orderPriceSnapshot?: number;
 
 	@Column({ nullable: true })
 	deliveredAddress?: string;

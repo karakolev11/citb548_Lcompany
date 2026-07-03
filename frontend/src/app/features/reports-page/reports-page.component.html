@@ -1,0 +1,9 @@
+<section>
+  <h2>Reports</h2>
+  <div *ngIf="summary$ | async as summary">
+    <p>Companies: {{ summary.companiesCount }}</p>
+    <p>Employees: {{ summary.employeesCount }}</p>
+    <p>Shipments: {{ summary.shipmentsCount }}</p>
+    <p>Revenue (snapshot sum): {{ summary.totalRevenue }}</p>
+  </div>
+</section>

@@ -1,0 +1,23 @@
+<section>
+  <h2>Companies</h2>
+  <p *ngIf="feedbackMessage" [style.color]="feedbackType === 'error' ? '#b00020' : '#0a7a2f'">{{ feedbackMessage }}</p>
+  <form [formGroup]="companyForm" (ngSubmit)="createCompany()">
+    <input formControlName="name" placeholder="Company name" />
+    <button type="submit">Create company</button>
+  </form>
+  <ul>
+    <li *ngFor="let company of companies$ | async">
+      {{ company.id }} - {{ company.name }}
+      <button type="button" (click)="deleteCompany(company.id)">Delete</button>
+    </li>
+  </ul>
+</section>
+
+<section>
+  <h2>Offices</h2>
+  <ul>
+    <li *ngFor="let office of offices$ | async">
+      {{ office.id }} - {{ office.name }} ({{ office.location }}) - Price: {{ office.orderPrice }}
+    </li>
+  </ul>
+</section>

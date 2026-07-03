@@ -14,6 +14,7 @@ export class OfficeService {
     const office = new Office();
     office.name = createOfficeDto.name;
     office.location = createOfficeDto.location;
+    office.orderPrice = createOfficeDto.orderPrice ?? 0;
     if (createOfficeDto.companyId) {
       // set company relation by id; TypeORM will accept an object with id
       // to set relation without loading the entity

@@ -29,13 +29,15 @@
     <div id="navigation">
       <!-- Navigation Menu-->
       <ul class="navigation-menu" [class]="navClass">
-        <li><a routerLink="/index-blog" class="nav-link-ref">Home</a></li>
+        <li><a routerLink="/app/shipments" class="nav-link-ref">Shipments</a></li>
 
-        <li><a routerLink="/blog-about" class="nav-link-ref">About</a></li>
+        <li *ngIf="canAccessBackoffice()"><a routerLink="/app/companies" class="nav-link-ref">Companies</a></li>
 
-        <li><a href="javascript:void(0)" class="nav-link-ref">Lifestyle</a></li>
+        <li *ngIf="canAccessBackoffice()"><a routerLink="/app/users" class="nav-link-ref">Users</a></li>
 
-        <li><a href="javascript:void(0)" class="nav-link-ref">Technology</a></li>
+        <li *ngIf="canAccessBackoffice()"><a routerLink="/app/reports" class="nav-link-ref">Reports</a></li>
+
+        <li><a href="javascript:void(0)" class="nav-link-ref" (click)="logout()">Logout</a></li>
       </ul>
       <!--end navigation menu-->
     </div>

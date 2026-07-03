@@ -10,7 +10,7 @@ import { AuthResponse, LoginRequest, RegisterRequest } from '../../models/auth.m
 })
 export class AuthService {
 
-  private readonly currentUser$$: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);
+  private readonly currentUser$$: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(this.getStoredUser());
   private readonly isLoggedIn$$ = new BehaviorSubject<boolean>(!!this.getToken());
 
   get currentUser$(): Observable<User | null> {
@@ -29,12 +29,12 @@ export class AuthService {
   public login(payload: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/login', payload).pipe(
       tap((authResponse) => {
-        this.currentUser$$.next(authResponse.user);
+        this.setCurrentUser(authResponse.user);
         this.setToken(authResponse.access_token);
         this.router.navigate(['/app']);
       }),
       catchError((error) => {
-        this.currentUser$$.next(null);
+        this.setCurrentUser(null);
         this.setToken(null);
         return throwError(() => error);
       })
@@ -44,12 +44,12 @@ export class AuthService {
   public register(payload: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/auth/register', payload).pipe(
       tap((authResponse) => {
-        this.currentUser$$.next(authResponse.user);
+        this.setCurrentUser(authResponse.user);
         this.setToken(authResponse.access_token);
         this.router.navigate(['/app']);
       }),
       catchError((error) => {
-        this.currentUser$$.next(null);
+        this.setCurrentUser(null);
         this.setToken(null);
         return throwError(() => error);
       })
@@ -58,8 +58,20 @@ export class AuthService {
 
   public logout(): void {
     this.setToken(null);
-    this.currentUser$$.next(null);
+    this.setCurrentUser(null);
     this.router.navigate(['/auth/login']);
+  }
+
+  public getCurrentUser(): User | null {
+    return this.currentUser$$.value;
+  }
+
+  public hasAnyRole(roleIds: number[]): boolean {
+    const user = this.getCurrentUser();
+    if (!user) {
+      return false;
+    }
+    return roleIds.includes(user.roleId);
   }
 
   private setToken(token?: string | null): void {
@@ -72,6 +84,26 @@ export class AuthService {
     }
   }
 
+  private setCurrentUser(user: User | null): void {
+    this.currentUser$$.next(user);
+    try {
+      if (user) {
+        localStorage.setItem('current_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('current_user');
+      }
+    } catch {}
+  }
+
+  private getStoredUser(): User | null {
+    try {
+      const raw = localStorage.getItem('current_user');
+      return raw ? JSON.parse(raw) as User : null;
+    } catch {
+      return null;
+    }
+  }
+
   private getToken(): string | null {
     try {
       return localStorage.getItem('access_token') ?? null;
@@ -81,7 +113,8 @@ export class AuthService {
   }
 
   public isAuthenticated(): boolean {
-    return !!this.getToken();
+    // Prevent guard redirect loops when token exists but local user context is missing.
+    return !!this.getToken() && !!this.getCurrentUser();
   }
 
   public getAccessToken(): string | null {
