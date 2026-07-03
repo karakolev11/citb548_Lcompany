@@ -1,6 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtTokenDto } from './dto/jwt-token.dto';
@@ -17,7 +16,7 @@ export class AuthController {
   
   @HttpCode(HttpStatus.OK)
   @Post('register')
-    public register(@Body() userDto: CreateUserDto): Promise<JwtTokenDto | void> {
+  public register(@Body() userDto: CreateUserDto): Promise<JwtTokenDto> {
     return this.authService.register(userDto);
   }
 

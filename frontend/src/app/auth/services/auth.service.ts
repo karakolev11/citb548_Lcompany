@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, tap, catchError, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { User } from '../../models/user.model';
-import { AuthResponse, LoginRequest } from '../../models/auth.models';
+import { AuthResponse, LoginRequest, RegisterRequest } from '../../models/auth.models';
 
 @Injectable({
   providedIn: 'root'
@@ -26,28 +26,40 @@ export class AuthService {
     private readonly router: Router
   ) { }
 
-  public login(payload: LoginRequest): void {
-    this.http.post<AuthResponse>('/api/auth/login', payload)
-      .subscribe((authResponse) => {
-        console.log('Login successful:', authResponse);
+  public login(payload: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>('/api/auth/login', payload).pipe(
+      tap((authResponse) => {
         this.currentUser$$.next(authResponse.user);
         this.setToken(authResponse.access_token);
         this.router.navigate(['/app']);
-      });
+      }),
+      catchError((error) => {
+        this.currentUser$$.next(null);
+        this.setToken(null);
+        return throwError(() => error);
+      })
+    );
   }
 
-  public register(payload: any): void {
-    this.http.post<AuthResponse>('/api/auth/register', payload)
-      .subscribe((authResponse) => {
-        console.log('Register successful:', authResponse);
+  public register(payload: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>('/api/auth/register', payload).pipe(
+      tap((authResponse) => {
         this.currentUser$$.next(authResponse.user);
         this.setToken(authResponse.access_token);
         this.router.navigate(['/app']);
-      });
+      }),
+      catchError((error) => {
+        this.currentUser$$.next(null);
+        this.setToken(null);
+        return throwError(() => error);
+      })
+    );
   }
 
   public logout(): void {
     this.setToken(null);
+    this.currentUser$$.next(null);
+    this.router.navigate(['/auth/login']);
   }
 
   private setToken(token?: string | null): void {
@@ -61,10 +73,18 @@ export class AuthService {
   }
 
   private getToken(): string | null {
-    return localStorage.getItem('access_token') ?? null;  
+    try {
+      return localStorage.getItem('access_token') ?? null;
+    } catch {
+      return null;
+    }
   }
 
   public isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  public getAccessToken(): string | null {
+    return this.getToken();
   }
 }

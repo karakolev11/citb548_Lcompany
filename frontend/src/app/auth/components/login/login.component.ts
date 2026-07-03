@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { LoginRequest } from '../../../models/auth.models';
 import { AuthService } from '../../services/auth.service';
 import { year } from '../../../utils/consts';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -30,11 +31,13 @@ import { year } from '../../../utils/consts';
 export class LoginComponent {
 
   year = year;
+  authError: string | null = null;
 
   form = new FormGroup({
-    username: new FormControl('', [Validators.required]),
+    username: new FormControl('', [Validators.required, Validators.minLength(3)]),
     password: new FormControl('', [
       Validators.required,
+      Validators.minLength(8),
     ]),
   });
 
@@ -42,8 +45,18 @@ export class LoginComponent {
     private readonly authService: AuthService
   ) {}
 
-  onSubmit() {
+  onSubmit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.authError = null;
     const payload: LoginRequest = this.form.value as LoginRequest;
-    this.authService.login(payload);
+    this.authService.login(payload).subscribe({
+      error: (error: HttpErrorResponse) => {
+        this.authError = error.error?.message ?? 'Unable to sign in. Please try again.';
+      }
+    });
   }
 }

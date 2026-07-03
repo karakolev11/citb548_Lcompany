@@ -31,6 +31,22 @@
 $ npm install
 ```
 
+## Environment variables
+
+```bash
+# from backend/
+cp .env.example .env
+```
+
+Set values in `.env` for your local environment, especially:
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_NAME`
+- `JWT_SECRET`
+
 ## Compile and run the project
 
 ```bash

@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { RegisterRequest } from '../../../models/auth.models';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-register',
@@ -26,9 +28,10 @@ import { AuthService } from '../../services/auth.service';
 export class RegisterComponent {
 
   year = new Date().getFullYear();
+  authError: string | null = null;
 
   form = new FormGroup({
-    username: new FormControl('', [Validators.required]),
+    username: new FormControl('', [Validators.required, Validators.minLength(3)]),
     email: new FormControl('', [Validators.required, Validators.email]),
     password: new FormControl('', [
       Validators.required,
@@ -38,8 +41,18 @@ export class RegisterComponent {
 
   constructor(private authService: AuthService) {}
 
-  onSubmit() {
-    const payload = this.form.value;
-    this.authService.register(payload);
+  onSubmit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.authError = null;
+    const payload = this.form.value as RegisterRequest;
+    this.authService.register(payload).subscribe({
+      error: (error: HttpErrorResponse) => {
+        this.authError = error.error?.message ?? 'Unable to register. Please try again.';
+      }
+    });
   }
 }

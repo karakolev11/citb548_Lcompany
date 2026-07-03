@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AlreadyAuthenticatedGuard } from './auth/guards/already-authenticated.guard';
+import { AuthGuard } from './auth/guards/auth.guard';
 
 export const routes: Routes = [
     {
@@ -26,8 +27,18 @@ export const routes: Routes = [
     },
     {
         path: 'app',
+        canActivate: [AuthGuard],
         loadComponent: () =>
             import('./layouts/app-layout/app-layout.component')
                 .then(c => c.AppLayoutComponent)
     },
+    {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'auth/login',
+    },
+    {
+        path: '**',
+        redirectTo: 'auth/login',
+    }
 ];
