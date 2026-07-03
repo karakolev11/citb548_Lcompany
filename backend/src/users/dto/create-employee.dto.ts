@@ -1,10 +1,33 @@
+import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
 export class CreateEmployeeDto {
-    firstName: string;
-    lastName: string;
+    @IsString()
+    @IsNotEmpty()
+    firstName!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    lastName!: string;
+
+    @IsOptional()
+    @IsString()
     phone?: string;
+
+    @IsOptional()
+    @IsString()
     department?: string;
+
+    @IsOptional()
+    @IsString()
     jobTitle?: string;
+
+    @IsOptional()
+    @IsString()
     employeeId?: string;
-    userId: number;
-    companyId: number;
+
+    @IsInt()
+    userId!: number;
+
+    @IsInt()
+    companyId!: number;
 }
