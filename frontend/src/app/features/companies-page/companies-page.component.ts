@@ -1,67 +1,361 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
-import { Observable } from 'rxjs';
-import { Company, Office } from '../../models/domain.models';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormArray, Validators, FormGroup, AbstractControl } from '@angular/forms';
+import { AgGridAngular } from 'ag-grid-angular';
+import {
+  AllCommunityModule,
+  ColDef,
+  GridApi,
+  GridReadyEvent,
+  ModuleRegistry,
+  RowClassParams,
+  ICellRendererParams,
+} from 'ag-grid-community';
 import { CompanyApiService } from '../../shared/services/company-api.service';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+interface GridRow {
+  rowType: 'company' | 'office';
+  id: number;
+  companyId?: number;
+  name: string;
+  address?: string;
+  location?: string;
+  orderPrice?: number;
+  officesCount?: number;
+  companyOfficesCount?: number;
+}
 
 @Component({
   selector: 'app-companies-page',
   standalone: true,
-  imports: [NgFor, NgIf, AsyncPipe, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AgGridAngular],
   templateUrl: './companies-page.component.html',
+  styleUrl: './companies-page.component.scss',
 })
 export class CompaniesPageComponent implements OnInit {
-  private readonly companyApi = inject(CompanyApiService);
-  private readonly fb = inject(FormBuilder);
+  private gridApi!: GridApi;
+  rowData: GridRow[] = [];
 
-  companies$!: Observable<Company[]>;
-  offices$!: Observable<Office[]>;
+  showCompanyModal = false;
+  companyModalMode: 'create' | 'edit' = 'create';
+  companyModalSubmitting = false;
+  companyModalError = '';
+  companyEditId: number | null = null;
+  companyForm!: FormGroup;
+
+  showOfficeModal = false;
+  officeModalMode: 'add' | 'edit' = 'add';
+  officeModalSubmitting = false;
+  officeModalError = '';
+  officeEditId: number | null = null;
+  officeModalCompanyId: number | null = null;
+  officeModalCompanyName = '';
+  officeForm!: FormGroup;
+
+  showConfirmModal = false;
+  confirmMessage = '';
+  private confirmCallback: (() => void) | null = null;
+
   feedbackMessage = '';
   feedbackType: 'success' | 'error' | '' = '';
-  readonly companyForm = this.fb.group({
-    name: ['', Validators.required],
-  });
+
+  columnDefs: ColDef[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 2,
+      cellRenderer: (params: ICellRendererParams) => {
+        const row = params.data as GridRow;
+        return row.rowType === 'company'
+          ? `<strong>${row.name}</strong>`
+          : `<span style="padding-left:24px">&#8627; ${row.name}</span>`;
+      },
+    },
+    {
+      headerName: 'Address / Location',
+      flex: 2,
+      valueGetter: (params) => {
+        const row = params.data as GridRow;
+        return row.rowType === 'company' ? (row.address ?? '—') : (row.location ?? '—');
+      },
+    },
+    {
+      headerName: 'Order Price',
+      flex: 1,
+      valueGetter: (params) => {
+        const row = params.data as GridRow;
+        return row.rowType === 'office' ? Number(row.orderPrice) : null;
+      },
+      valueFormatter: (params) => (params.value != null ? `$${Number(params.value).toFixed(2)}` : ''),
+    },
+    {
+      headerName: 'Offices',
+      flex: 1,
+      valueGetter: (params) => {
+        const row = params.data as GridRow;
+        return row.rowType === 'company' ? (row.officesCount ?? 0) : '';
+      },
+    },
+    {
+      headerName: 'Actions',
+      flex: 2,
+      cellRenderer: (params: ICellRendererParams) => {
+        const row = params.data as GridRow;
+        if (row.rowType === 'company') {
+          return `<button class="btn btn-sm btn-outline-primary me-1" data-action="add-office" data-id="${row.id}" data-name="${row.name}">+ Office</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" data-action="edit-company" data-id="${row.id}">Edit</button>
+            <button class="btn btn-sm btn-outline-danger" data-action="delete-company" data-id="${row.id}" data-name="${row.name}">Delete</button>`;
+        }
+        const isLast = (row.companyOfficesCount ?? 0) <= 1;
+        return `<button class="btn btn-sm btn-outline-secondary me-1" data-action="edit-office" data-id="${row.id}">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete-office" data-id="${row.id}" data-company="${row.companyId}" ${isLast ? 'disabled title="Cannot delete the last office"' : ''}>Delete</button>`;
+      },
+      onCellClicked: (event) => {
+        const target = event.event?.target as HTMLElement;
+        const btn = target?.closest('[data-action]') as HTMLElement | null;
+        if (!btn) return;
+        const action = btn.dataset['action'];
+        const id = Number(btn.dataset['id']);
+        const name = btn.dataset['name'] ?? '';
+        const companyId = Number(btn.dataset['company']);
+        if (action === 'delete-company') this.confirmDelete('company', id, name);
+        if (action === 'delete-office') this.confirmDelete('office', id, name, companyId);
+        if (action === 'add-office') this.openAddOfficeModal(id, name);
+        if (action === 'edit-company') this.openEditCompanyModal(id);
+        if (action === 'edit-office') this.openEditOfficeModal(id);
+      },
+    },
+  ];
+
+  getRowClass = (params: RowClassParams): string =>
+    params.data?.rowType === 'company' ? 'company-group-row' : 'office-child-row';
+
+  constructor(
+    private readonly companyApi: CompanyApiService,
+    private readonly fb: FormBuilder,
+  ) {}
 
   ngOnInit(): void {
-    this.reload();
+    this.loadData();
   }
 
-  createCompany(): void {
-    if (this.companyForm.invalid) {
-      return;
-    }
+  onGridReady(event: GridReadyEvent): void {
+    this.gridApi = event.api;
+  }
 
-    const name = this.companyForm.value.name?.trim();
-    if (!name) {
-      return;
-    }
+  onQuickFilterChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.gridApi?.setGridOption('quickFilterText', value);
+  }
 
-    this.companyApi.createCompany({ name }).subscribe(() => {
-      this.companyForm.reset();
-      this.setFeedback('Company created successfully.', 'success');
-      this.reload();
-    }, () => {
-      this.setFeedback('Failed to create company.', 'error');
+  // ─── Company modal ────────────────────────────────────────────
+
+  get offices(): FormArray {
+    return this.companyForm.get('offices') as FormArray;
+  }
+
+  newOfficeGroup(): FormGroup {
+    return this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      orderPrice: [null, [Validators.required, Validators.min(0.01)]],
     });
   }
 
-  deleteCompany(id: number): void {
-    this.companyApi.deleteCompany(id).subscribe(() => {
-      this.setFeedback('Company deleted.', 'success');
-      this.reload();
-    }, () => {
-      this.setFeedback('Failed to delete company.', 'error');
+  addOfficeRow(): void { this.offices.push(this.newOfficeGroup()); }
+
+  removeOfficeRow(index: number): void {
+    if (this.offices.length > 1) this.offices.removeAt(index);
+  }
+
+  hasDuplicateOfficeName(): boolean {
+    const names = this.offices.controls
+      .map(c => (c.get('name')?.value ?? '').toLowerCase().trim())
+      .filter(Boolean);
+    return names.length !== new Set(names).size;
+  }
+
+  openCreateCompanyModal(): void {
+    this.companyModalMode = 'create';
+    this.companyEditId = null;
+    this.companyModalError = '';
+    this.companyForm = this.fb.group({
+      name: ['', Validators.required],
+      address: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(200)]],
+      offices: this.fb.array([this.newOfficeGroup()]),
+    });
+    this.showCompanyModal = true;
+  }
+
+  openEditCompanyModal(id: number): void {
+    const row = this.rowData.find(r => r.rowType === 'company' && r.id === id);
+    if (!row) return;
+    this.companyModalMode = 'edit';
+    this.companyEditId = id;
+    this.companyModalError = '';
+    this.companyForm = this.fb.group({
+      name: [row.name, Validators.required],
+      address: [row.address ?? '', [Validators.required, Validators.minLength(5), Validators.maxLength(200)]],
+    });
+    this.showCompanyModal = true;
+  }
+
+  closeCompanyModal(): void {
+    if (this.companyModalSubmitting) return;
+    this.showCompanyModal = false;
+  }
+
+  submitCompanyModal(): void {
+    if (this.companyModalMode === 'create' && this.hasDuplicateOfficeName()) {
+      this.companyForm.markAllAsTouched();
+      this.companyModalError = 'Office names must be unique within a company.';
+      return;
+    }
+    if (this.companyForm.invalid) { this.companyForm.markAllAsTouched(); return; }
+
+    this.companyModalSubmitting = true;
+    this.companyModalError = '';
+    this.companyForm.disable();
+    const val = this.companyForm.getRawValue();
+
+    const call = this.companyModalMode === 'create'
+      ? this.companyApi.createCompanyWithOffices({
+          name: val.name.trim(), address: val.address.trim(),
+          offices: val.offices.map((o: any) => ({ name: o.name.trim(), location: o.location.trim(), orderPrice: Number(o.orderPrice) })),
+        })
+      : this.companyApi.updateCompany(this.companyEditId!, { name: val.name.trim(), address: val.address.trim() });
+
+    call.subscribe({
+      next: () => {
+        this.companyModalSubmitting = false;
+        this.showCompanyModal = false;
+        this.setFeedback(this.companyModalMode === 'create' ? 'Company created.' : 'Company updated.', 'success');
+        this.loadData();
+      },
+      error: (err) => {
+        this.companyModalSubmitting = false;
+        this.companyForm.enable();
+        const msg = err?.error?.message;
+        this.companyModalError = Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Operation failed.');
+      },
+    });
+  }
+
+  // ─── Office modal ─────────────────────────────────────────────
+
+  openAddOfficeModal(companyId: number, companyName: string): void {
+    this.officeModalMode = 'add';
+    this.officeEditId = null;
+    this.officeModalCompanyId = companyId;
+    this.officeModalCompanyName = companyName;
+    this.officeModalError = '';
+    this.officeForm = this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      orderPrice: [null, [Validators.required, Validators.min(0.01)]],
+    });
+    this.showOfficeModal = true;
+  }
+
+  openEditOfficeModal(id: number): void {
+    const row = this.rowData.find(r => r.rowType === 'office' && r.id === id);
+    if (!row) return;
+    const companyRow = this.rowData.find(r => r.rowType === 'company' && r.id === row.companyId);
+    this.officeModalMode = 'edit';
+    this.officeEditId = id;
+    this.officeModalCompanyId = row.companyId ?? null;
+    this.officeModalCompanyName = companyRow?.name ?? '';
+    this.officeModalError = '';
+    this.officeForm = this.fb.group({
+      name: [row.name, Validators.required],
+      location: [row.location ?? '', Validators.required],
+      orderPrice: [row.orderPrice ?? null, [Validators.required, Validators.min(0.01)]],
+    });
+    this.showOfficeModal = true;
+  }
+
+  closeOfficeModal(): void {
+    if (this.officeModalSubmitting) return;
+    this.showOfficeModal = false;
+  }
+
+  submitOfficeModal(): void {
+    if (this.officeForm.invalid) { this.officeForm.markAllAsTouched(); return; }
+    this.officeModalSubmitting = true;
+    this.officeModalError = '';
+    this.officeForm.disable();
+    const val = this.officeForm.getRawValue();
+
+    const call = this.officeModalMode === 'add'
+      ? this.companyApi.createOffice({ name: val.name.trim(), location: val.location.trim(), orderPrice: Number(val.orderPrice), companyId: this.officeModalCompanyId! })
+      : this.companyApi.updateOffice(this.officeEditId!, { name: val.name.trim(), location: val.location.trim(), orderPrice: Number(val.orderPrice) });
+
+    call.subscribe({
+      next: () => {
+        this.officeModalSubmitting = false;
+        this.showOfficeModal = false;
+        this.setFeedback(this.officeModalMode === 'add' ? 'Office added.' : 'Office updated.', 'success');
+        this.loadData();
+      },
+      error: (err) => {
+        this.officeModalSubmitting = false;
+        this.officeForm.enable();
+        const msg = err?.error?.message;
+        this.officeModalError = Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Operation failed.');
+      },
+    });
+  }
+
+  // ─── Confirm ──────────────────────────────────────────────────
+
+  private confirmDelete(type: 'company' | 'office', id: number, name: string, _companyId?: number): void {
+    this.confirmMessage = type === 'company' ? `Delete company "${name}" and all its offices?` : 'Delete this office?';
+    this.confirmCallback = () => {
+      if (type === 'company') {
+        this.companyApi.deleteCompany(id).subscribe({
+          next: () => { this.setFeedback('Company deleted.', 'success'); this.loadData(); },
+          error: () => this.setFeedback('Failed to delete company.', 'error'),
+        });
+      } else {
+        this.companyApi.deleteOffice(id).subscribe({
+          next: () => { this.setFeedback('Office deleted.', 'success'); this.loadData(); },
+          error: () => this.setFeedback('Failed to delete office.', 'error'),
+        });
+      }
+    };
+    this.showConfirmModal = true;
+  }
+
+  confirmYes(): void { this.showConfirmModal = false; this.confirmCallback?.(); this.confirmCallback = null; }
+  confirmNo(): void { this.showConfirmModal = false; this.confirmCallback = null; }
+
+  // ─── Data ─────────────────────────────────────────────────────
+
+  private loadData(): void {
+    this.companyApi.getCompanies().subscribe({
+      next: (companies) => {
+        const sorted = [...companies].sort((a, b) => a.name.localeCompare(b.name));
+        const rows: GridRow[] = [];
+        for (const c of sorted) {
+          const offices = [...(c.offices ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+          rows.push({ rowType: 'company', id: c.id, name: c.name, address: c.address, officesCount: offices.length });
+          for (const o of offices) {
+            rows.push({ rowType: 'office', id: o.id, companyId: c.id, name: o.name, location: o.location, orderPrice: o.orderPrice, companyOfficesCount: offices.length });
+          }
+        }
+        this.rowData = rows;
+      },
+      error: () => this.setFeedback('Failed to load companies.', 'error'),
     });
   }
 
   private setFeedback(message: string, type: 'success' | 'error'): void {
     this.feedbackMessage = message;
     this.feedbackType = type;
+    setTimeout(() => { this.feedbackMessage = ''; this.feedbackType = ''; }, 4000);
   }
 
-  private reload(): void {
-    this.companies$ = this.companyApi.getCompanies();
-    this.offices$ = this.companyApi.getOffices();
-  }
+  asFormGroup(ctrl: AbstractControl): FormGroup { return ctrl as FormGroup; }
 }

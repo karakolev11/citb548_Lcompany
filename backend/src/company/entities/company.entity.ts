@@ -12,7 +12,10 @@ export class Company extends BaseEntity {
     @Column()
     name: string;
 
-    @OneToMany(() => Office, office => office.company)
+    @Column({ nullable: true })
+    address?: string;
+
+    @OneToMany(() => Office, office => office.company, { cascade: ['remove'] })
     offices: Office[];
 
     @OneToMany(() => Customer, customer => customer.company)

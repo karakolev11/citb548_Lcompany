@@ -15,6 +15,9 @@ export class Office extends BaseEntity {
     @Column({ type: 'numeric', name: 'order_price', default: 0 })
     orderPrice!: number;
 
-    @ManyToOne(() => Company, company => company.offices)
+    @Column({ nullable: true })
+    companyId?: number;
+
+    @ManyToOne(() => Company, company => company.offices, { onDelete: 'CASCADE' })
     company!: Company;
 }    

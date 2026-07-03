@@ -20,6 +20,10 @@ export class NavBarComponent {
 
   navClass = 'navbar-white-bg';
 
+  public isAdmin(): boolean {
+    return this.authService.hasAnyRole([1]);
+  }
+
   public canAccessBackoffice(): boolean {
     return this.authService.hasAnyRole([1, 2]);
   }

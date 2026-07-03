@@ -20,6 +20,8 @@
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
     "@tailwindcss/postcss": "^4.1.18",
+    "ag-grid-angular": "^36.0.0",
+    "ag-grid-community": "^36.0.0",
     "angular-feather": "^6.5.1",
     "bootstrap": "^5.3.8",
     "postcss": "^8.5.6",

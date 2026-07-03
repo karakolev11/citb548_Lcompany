@@ -3,6 +3,8 @@ import { ShipmentStatus } from "../utils/shipment-status.enum";
 export interface Company {
   id: number;
   name: string;
+  address?: string;
+  offices?: Office[];
 }
 
 export interface Office {
@@ -10,6 +12,7 @@ export interface Office {
   name: string;
   location: string;
   orderPrice: number;
+  companyId?: number;
   company?: Company;
 }
 

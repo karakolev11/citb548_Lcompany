@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { CompanyService } from '../services/company.service';
 import { CreateCompanyDto } from '../dto/create-company.dto';
 import { UpdateCompanyDto } from '../dto/update-company.dto';
+import { CreateCompanyWithOfficesDto } from '../dto/create-company-with-offices.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { Roles } from 'src/auth/roles.decorator';
@@ -16,6 +17,12 @@ export class CompanyController {
   @Roles(UserRoles.ADMIN)
   public async create(@Body() createCompanyDto: CreateCompanyDto) {
     return this.companyService.create(createCompanyDto);
+  }
+
+  @Post('with-offices')
+  @Roles(UserRoles.ADMIN)
+  public async createWithOffices(@Body() dto: CreateCompanyWithOfficesDto) {
+    return this.companyService.createWithOffices(dto);
   }
 
   @Get()

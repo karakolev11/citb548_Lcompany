@@ -31,7 +31,7 @@
       <ul class="navigation-menu" [class]="navClass">
         <li><a routerLink="/app/shipments" class="nav-link-ref">Shipments</a></li>
 
-        <li *ngIf="canAccessBackoffice()"><a routerLink="/app/companies" class="nav-link-ref">Companies</a></li>
+        <li *ngIf="isAdmin()"><a routerLink="/app/companies" class="nav-link-ref">Companies</a></li>
 
         <li *ngIf="canAccessBackoffice()"><a routerLink="/app/users" class="nav-link-ref">Users</a></li>
 
