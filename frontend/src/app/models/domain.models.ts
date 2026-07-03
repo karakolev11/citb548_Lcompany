@@ -34,6 +34,9 @@ export interface Shipment {
   senderId?: number;
   receiverId?: number;
   officeId?: number;
+  sender?: Customer;
+  receiver?: Customer;
+  office?: Office;
   weight: number;
   status: ShipmentStatus;
   trackingNumber: string;
