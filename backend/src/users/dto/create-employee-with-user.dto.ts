@@ -1,6 +1,17 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class CreateEmployeeDto {
+export class CreateEmployeeWithUserDto {
+    @IsString()
+    @MinLength(3)
+    username!: string;
+
+    @IsEmail()
+    email!: string;
+
+    @IsString()
+    @MinLength(8)
+    password!: string;
+
     @IsString()
     @IsNotEmpty()
     firstName!: string;
@@ -24,9 +35,6 @@ export class CreateEmployeeDto {
     @IsOptional()
     @IsString()
     employeeId?: string;
-
-    @IsInt()
-    userId!: number;
 
     @IsInt()
     officeId!: number;

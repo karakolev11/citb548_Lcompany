@@ -28,6 +28,10 @@ export class NavBarComponent {
     return this.authService.hasAnyRole([1, 2]);
   }
 
+  public canAccessUsers(): boolean {
+    return this.authService.hasAnyRole([1]);
+  }
+
   public logout(): void {
     this.authService.logout();
   }

@@ -33,7 +33,7 @@
 
         <li *ngIf="isAdmin()"><a routerLink="/app/companies" class="nav-link-ref">Companies</a></li>
 
-        <li *ngIf="canAccessBackoffice()"><a routerLink="/app/users" class="nav-link-ref">Users</a></li>
+        <li *ngIf="canAccessUsers()"><a routerLink="/app/users" class="nav-link-ref">Users</a></li>
 
         <li *ngIf="canAccessBackoffice()"><a routerLink="/app/reports" class="nav-link-ref">Reports</a></li>
 

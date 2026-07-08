@@ -2,6 +2,7 @@ import { BaseEntity } from "src/common/entities/base.entity";
 import { Column, Entity, ManyToOne, JoinColumn, OneToOne } from "typeorm";
 import { User } from "src/users/entities/user.entity";
 import { Company } from "src/company/entities/company.entity";
+import { Office } from "src/company/entities/office.entity";
 
 @Entity({ name: 'employees' })
 export class Employee extends BaseEntity {
@@ -37,4 +38,11 @@ export class Employee extends BaseEntity {
 
     @Column()
     companyId: number;
+
+    @ManyToOne(() => Office)
+    @JoinColumn({ name: 'office_id' })
+    office: Office;
+
+    @Column({ nullable: true, name: 'office_id' })
+    officeId?: number;
 }

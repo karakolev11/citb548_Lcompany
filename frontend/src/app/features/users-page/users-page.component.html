@@ -1,34 +1,78 @@
-<section>
-  <h2>Customers</h2>
-  <p *ngIf="feedbackMessage" [style.color]="feedbackType === 'error' ? '#b00020' : '#0a7a2f'">{{ feedbackMessage }}</p>
-  <form [formGroup]="customerForm" (ngSubmit)="createCustomer()">
-    <input formControlName="firstName" placeholder="First name" />
-    <input formControlName="lastName" placeholder="Last name" />
-    <input formControlName="userId" type="number" placeholder="User ID" />
-    <input formControlName="companyId" type="number" placeholder="Company ID (optional)" />
-    <button type="submit">Create customer</button>
-  </form>
-  <ul>
-    <li *ngFor="let customer of customers$ | async">
-      {{ customer.id }} - {{ customer.firstName }} {{ customer.lastName }}
-      <button type="button" (click)="deleteCustomer(customer.id)">Delete</button>
-    </li>
-  </ul>
-</section>
+<div class="container-fluid py-3">
+  <div *ngIf="feedbackMessage" class="alert mb-3"
+    [class.alert-success]="feedbackType === 'success'"
+    [class.alert-danger]="feedbackType === 'error'">
+    {{ feedbackMessage }}
+  </div>
 
-<section>
-  <h2>Employees</h2>
-  <form [formGroup]="employeeForm" (ngSubmit)="createEmployee()">
-    <input formControlName="firstName" placeholder="First name" />
-    <input formControlName="lastName" placeholder="Last name" />
-    <input formControlName="userId" type="number" placeholder="User ID" />
-    <input formControlName="companyId" type="number" placeholder="Company ID" />
-    <button type="submit">Create employee</button>
-  </form>
-  <ul>
-    <li *ngFor="let employee of employees$ | async">
-      {{ employee.id }} - {{ employee.firstName }} {{ employee.lastName }}
-      <button type="button" (click)="deleteEmployee(employee.id)">Delete</button>
-    </li>
-  </ul>
-</section>
+  <div class="btn-group mb-3" role="group" aria-label="Users tabs">
+    <button
+      type="button"
+      class="btn"
+      [class.btn-primary]="activeTab === 'employees'"
+      [class.btn-outline-primary]="activeTab !== 'employees'"
+      (click)="setTab('employees')">
+      Employees
+    </button>
+    <button
+      type="button"
+      class="btn"
+      [class.btn-primary]="activeTab === 'customers'"
+      [class.btn-outline-primary]="activeTab !== 'customers'"
+      (click)="setTab('customers')">
+      Customers
+    </button>
+  </div>
+
+  <section *ngIf="activeTab === 'employees'">
+    <div class="d-flex align-items-center gap-2 mb-3" *ngIf="isAdmin">
+      <button class="btn btn-primary" (click)="openCreateEmployeeModal()">+ Create Employee</button>
+      <button class="btn btn-outline-primary" (click)="openCreateAdminModal()">+ Create Admin</button>
+      <input class="form-control w-auto" placeholder="Quick filter..." (input)="onEmployeesQuickFilterChange($event)">
+    </div>
+
+    <ag-grid-angular
+      style="width: 100%; height: 520px;"
+      [rowData]="employeesRowData"
+      [columnDefs]="employeeColumnDefs"
+      [animateRows]="true"
+      (gridReady)="onEmployeesGridReady($event)">
+    </ag-grid-angular>
+  </section>
+
+  <section *ngIf="activeTab === 'customers'">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <input class="form-control w-auto" placeholder="Quick filter..." (input)="onCustomersQuickFilterChange($event)">
+    </div>
+
+    <ag-grid-angular
+      style="width: 100%; height: 520px;"
+      [rowData]="customersRowData"
+      [columnDefs]="customersColumnDefs"
+      [animateRows]="true"
+      (gridReady)="onCustomersGridReady($event)">
+    </ag-grid-angular>
+  </section>
+</div>
+
+<app-employee-modal
+  [show]="showEmployeeModal"
+  [mode]="employeeModalMode"
+  [submitting]="employeeModalSubmitting"
+  [error]="employeeModalError"
+  [form]="employeeForm"
+  [companies]="companies"
+  [officesByCompany]="officesByCompany"
+  [selectedCompanyHasOffices]="selectedCompanyHasOffices"
+  (closeModal)="closeEmployeeModal()"
+  (submitModal)="submitEmployeeModal()">
+</app-employee-modal>
+
+<app-admin-modal
+  [show]="showAdminModal"
+  [submitting]="adminModalSubmitting"
+  [error]="adminModalError"
+  [form]="adminForm"
+  (closeModal)="closeAdminModal()"
+  (submitModal)="submitAdminModal()">
+</app-admin-modal>

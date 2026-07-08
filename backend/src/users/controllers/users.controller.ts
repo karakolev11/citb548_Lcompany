@@ -6,6 +6,8 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { UserRoles } from 'src/common/enums/user-roles.enum';
+import { CreateAdminDto } from '../dto/create-admin.dto';
+import * as bcrypt from 'bcrypt';
 
 @Controller('users')
 @UseGuards(AuthGuard, RoleGuard)
@@ -16,6 +18,17 @@ export class UsersController {
   @Roles(UserRoles.ADMIN)
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @Post('admins')
+  @Roles(UserRoles.ADMIN)
+  async createAdmin(@Body() createAdminDto: CreateAdminDto) {
+    const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
+    return this.usersService.createAdminUser({
+      username: createAdminDto.username,
+      email: createAdminDto.email,
+      password: hashedPassword,
+    });
   }
 
   @Get()

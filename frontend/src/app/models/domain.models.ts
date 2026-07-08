@@ -22,14 +22,23 @@ export interface Customer {
   lastName: string;
   userId: number;
   companyId?: number;
+  user?: { id: number; username: string; email: string; roleId: number };
 }
 
 export interface Employee {
   id: number;
   firstName: string;
   lastName: string;
+  phone?: string;
+  department?: string;
+  jobTitle?: string;
+  employeeId?: string;
   userId: number;
-  companyId: number;
+  companyId?: number;
+  officeId?: number;
+  company?: Company;
+  office?: Office;
+  user?: { id: number; username: string; email: string; roleId: number };
 }
 
 export interface Shipment {

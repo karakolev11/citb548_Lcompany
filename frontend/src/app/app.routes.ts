@@ -44,7 +44,7 @@ export const routes: Routes = [
             {
                 path: 'users',
                 canActivate: [RoleGuard],
-                data: { roles: [1, 2] },
+                data: { roles: [1] },
                 loadComponent: () =>
                     import('./features/users-page/users-page.component')
                         .then(c => c.UsersPageComponent)

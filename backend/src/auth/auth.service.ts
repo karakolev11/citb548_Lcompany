@@ -4,12 +4,14 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/services/users.service';
 import { JwtTokenDto } from './dto/jwt-token.dto';
 import * as bcrypt from 'bcrypt';
+import { CustomerService } from 'src/users/services/customer.service';
 
 @Injectable()
 export class AuthService {
 
     constructor(
         private usersService: UsersService,
+        private customerService: CustomerService,
         private jwtService: JwtService,
     ) { }
 
@@ -45,6 +47,12 @@ export class AuthService {
         const newUser = await this.usersService.create({
             ...userDto,
             password: hashedPassword,
+        });
+
+        await this.customerService.create({
+            firstName: userDto.username,
+            lastName: userDto.username,
+            userId: newUser.id,
         });
         
         if (newUser) return this.login(userDto.username, userDto.password);

@@ -11,13 +11,11 @@ export class UsersService {
   constructor(@InjectRepository(User) private userRepository: Repository<User>) {}
 
   public async create(createUserDto: CreateUserDto): Promise<User> {
-    const user = new User();
-    user.username = createUserDto.username;
-    user.email = createUserDto.email;
-    user.password = createUserDto.password;
-    user.roleId = 2; // Default role ID for now
+    return this.createWithRole(createUserDto, 3);
+  }
 
-    return await this.userRepository.save(user);
+  public async createAdminUser(createUserDto: CreateUserDto): Promise<User> {
+    return this.createWithRole(createUserDto, 1);
   }
 
   public async findAll(): Promise<User[]> {
@@ -45,8 +43,29 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
+  public async deactivate(id: number): Promise<boolean> {
+    const user = await this.findOne(id);
+    if (!user) {
+      return false;
+    }
+    user.username = `${user.username}__deactivated__${user.id}`;
+    user.email = `deactivated+${user.id}@invalid.local`;
+    await this.userRepository.save(user);
+    const result = await this.userRepository.softDelete(id);
+    return result.affected! > 0;
+  }
+
   public async softDelete(id: number): Promise<boolean> {
     const result = await this.userRepository.softDelete(id);
     return result.affected! > 0;
+  }
+
+  private async createWithRole(createUserDto: CreateUserDto, roleId: number): Promise<User> {
+    const user = new User();
+    user.username = createUserDto.username;
+    user.email = createUserDto.email;
+    user.password = createUserDto.password;
+    user.roleId = roleId;
+    return await this.userRepository.save(user);
   }
 }
