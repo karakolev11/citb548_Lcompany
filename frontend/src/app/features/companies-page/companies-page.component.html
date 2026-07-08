@@ -25,132 +25,34 @@
 
 </div>
 
-<!-- ─── Company Modal (create / edit) ────────────────────────── -->
-<div class="modal-backdrop-custom" *ngIf="showCompanyModal" (click)="closeCompanyModal()"></div>
-<div class="modal-custom" *ngIf="showCompanyModal">
-  <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">{{ companyModalMode === 'create' ? 'Create Company' : 'Edit Company' }}</h5>
-        <button type="button" class="btn-close" (click)="closeCompanyModal()" [disabled]="companyModalSubmitting"></button>
-      </div>
-      <div class="modal-body">
-        <div *ngIf="companyModalError" class="alert alert-danger">{{ companyModalError }}</div>
-        <form [formGroup]="companyForm">
-          <div class="mb-3">
-            <label class="form-label">Company Name <span class="text-danger">*</span></label>
-            <input class="form-control" formControlName="name" placeholder="e.g. Acme Corp"
-              [class.is-invalid]="companyForm.get('name')?.invalid && companyForm.get('name')?.touched">
-            <div class="invalid-feedback">Name is required.</div>
-          </div>
-          <div [class.mb-4]="companyModalMode === 'create'" [class.mb-2]="companyModalMode === 'edit'">
-            <label class="form-label">Company Address <span class="text-danger">*</span></label>
-            <input class="form-control" formControlName="address" placeholder="e.g. 123 Main St, Sofia"
-              [class.is-invalid]="companyForm.get('address')?.invalid && companyForm.get('address')?.touched">
-            <div class="invalid-feedback">Address is required (5–200 characters).</div>
-          </div>
-          <ng-container *ngIf="companyModalMode === 'create'">
-            <hr>
-            <h6 class="mb-3">Offices <span class="text-muted small">(at least one required)</span></h6>
-            <div formArrayName="offices">
-              <div *ngFor="let ctrl of offices.controls; let i = index" [formGroupName]="i" class="border rounded p-3 mb-2 bg-light">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <strong>Office {{ i + 1 }}</strong>
-                  <button type="button" class="btn btn-sm btn-outline-danger"
-                    (click)="removeOfficeRow(i)" [disabled]="offices.length === 1 || companyModalSubmitting">Remove</button>
-                </div>
-                <div class="row g-2">
-                  <div class="col-md-4">
-                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="name" placeholder="e.g. Sofia Office"
-                      [class.is-invalid]="asFormGroup(ctrl).get('name')?.invalid && asFormGroup(ctrl).get('name')?.touched">
-                    <div class="invalid-feedback">Required.</div>
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Location <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="location" placeholder="e.g. 5 Vitosha Blvd"
-                      [class.is-invalid]="asFormGroup(ctrl).get('location')?.invalid && asFormGroup(ctrl).get('location')?.touched">
-                    <div class="invalid-feedback">Required.</div>
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Order Price <span class="text-danger">*</span></label>
-                    <input class="form-control" type="number" step="0.01" min="0.01" formControlName="orderPrice" placeholder="e.g. 25.00"
-                      [class.is-invalid]="asFormGroup(ctrl).get('orderPrice')?.invalid && asFormGroup(ctrl).get('orderPrice')?.touched">
-                    <div class="invalid-feedback">Must be &gt; 0.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div *ngIf="hasDuplicateOfficeName()" class="text-danger small mt-1">Office names must be unique within a company.</div>
-            <button type="button" class="btn btn-outline-secondary btn-sm mt-2"
-              (click)="addOfficeRow()" [disabled]="companyModalSubmitting">+ Add Office</button>
-          </ng-container>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeCompanyModal()" [disabled]="companyModalSubmitting">Cancel</button>
-        <button class="btn btn-primary" (click)="submitCompanyModal()" [disabled]="companyModalSubmitting">
-          {{ companyModalSubmitting ? 'Saving...' : (companyModalMode === 'create' ? 'Create Company' : 'Save Changes') }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+<app-company-modal
+  [show]="showCompanyModal"
+  [mode]="companyModalMode"
+  [submitting]="companyModalSubmitting"
+  [error]="companyModalError"
+  [form]="companyForm"
+  [offices]="offices"
+  [duplicateOfficeName]="hasDuplicateOfficeName()"
+  (closeModal)="closeCompanyModal()"
+  (submitModal)="submitCompanyModal()"
+  (addOffice)="addOfficeRow()"
+  (removeOffice)="removeOfficeRow($event)">
+</app-company-modal>
 
-<!-- ─── Office Modal (add / edit) ─────────────────────────────── -->
-<div class="modal-backdrop-custom" *ngIf="showOfficeModal" (click)="closeOfficeModal()"></div>
-<div class="modal-custom" *ngIf="showOfficeModal">
-  <div class="modal-dialog" (click)="$event.stopPropagation()">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">{{ officeModalMode === 'add' ? 'Add Office' : 'Edit Office' }}</h5>
-        <button type="button" class="btn-close" (click)="closeOfficeModal()" [disabled]="officeModalSubmitting"></button>
-      </div>
-      <div class="modal-body">
-        <div *ngIf="officeModalError" class="alert alert-danger">{{ officeModalError }}</div>
-        <p class="text-muted small mb-3">Company: <strong>{{ officeModalCompanyName }}</strong></p>
-        <form [formGroup]="officeForm">
-          <div class="mb-3">
-            <label class="form-label">Office Name <span class="text-danger">*</span></label>
-            <input class="form-control" formControlName="name" placeholder="e.g. Sofia Office"
-              [class.is-invalid]="officeForm.get('name')?.invalid && officeForm.get('name')?.touched">
-            <div class="invalid-feedback">Name is required.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Location <span class="text-danger">*</span></label>
-            <input class="form-control" formControlName="location" placeholder="e.g. 5 Vitosha Blvd"
-              [class.is-invalid]="officeForm.get('location')?.invalid && officeForm.get('location')?.touched">
-            <div class="invalid-feedback">Location is required.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Order Price <span class="text-danger">*</span></label>
-            <input class="form-control" type="number" step="0.01" min="0.01" formControlName="orderPrice" placeholder="e.g. 25.00"
-              [class.is-invalid]="officeForm.get('orderPrice')?.invalid && officeForm.get('orderPrice')?.touched">
-            <div class="invalid-feedback">Must be greater than 0.</div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeOfficeModal()" [disabled]="officeModalSubmitting">Cancel</button>
-        <button class="btn btn-primary" (click)="submitOfficeModal()" [disabled]="officeModalSubmitting">
-          {{ officeModalSubmitting ? 'Saving...' : (officeModalMode === 'add' ? 'Add Office' : 'Save Changes') }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+<app-office-modal
+  [show]="showOfficeModal"
+  [mode]="officeModalMode"
+  [submitting]="officeModalSubmitting"
+  [error]="officeModalError"
+  [companyName]="officeModalCompanyName"
+  [form]="officeForm"
+  (closeModal)="closeOfficeModal()"
+  (submitModal)="submitOfficeModal()">
+</app-office-modal>
 
-<!-- ─── Confirm Modal ─────────────────────────────────────────── -->
-<div class="modal-backdrop-custom" *ngIf="showConfirmModal"></div>
-<div class="modal-custom" *ngIf="showConfirmModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Confirm</h5></div>
-      <div class="modal-body">{{ confirmMessage }}</div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="confirmNo()">No</button>
-        <button class="btn btn-danger" (click)="confirmYes()">Yes, delete</button>
-      </div>
-    </div>
-  </div>
-</div>
+<app-confirm-modal
+  [show]="showConfirmModal"
+  [message]="confirmMessage"
+  (confirm)="confirmYes()"
+  (cancel)="confirmNo()">
+</app-confirm-modal>

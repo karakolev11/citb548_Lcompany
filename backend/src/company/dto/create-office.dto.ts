@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsInt, IsNumber, IsPositive, IsString } from 'class-validator';
 
 export class CreateOfficeDto {
   @IsString()
@@ -7,12 +7,11 @@ export class CreateOfficeDto {
   @IsString()
   location: string;
 
-  @IsOptional()
   @IsNumber()
   @IsPositive()
-  orderPrice?: number;
+  orderPrice: number;
 
-  @IsOptional()
-  @IsNumber()
-  companyId?: number;
+  @IsInt()
+  @IsPositive()
+  companyId: number;
 }

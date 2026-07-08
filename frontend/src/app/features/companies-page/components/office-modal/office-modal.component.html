@@ -1,0 +1,41 @@
+<div class="modal-backdrop-custom" *ngIf="show" (click)="close()"></div>
+<div class="modal-custom" *ngIf="show">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ mode === 'add' ? 'Add Office' : 'Edit Office' }}</h5>
+        <button type="button" class="btn-close" (click)="close()" [disabled]="submitting"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+        <p class="text-muted small mb-3">Company: <strong>{{ companyName }}</strong></p>
+        <form [formGroup]="form">
+          <div class="mb-3">
+            <label class="form-label">Office Name <span class="text-danger">*</span></label>
+            <input class="form-control" formControlName="name" placeholder="e.g. Sofia Office"
+              [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched">
+            <div class="invalid-feedback">Name is required.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Location <span class="text-danger">*</span></label>
+            <input class="form-control" formControlName="location" placeholder="e.g. 5 Vitosha Blvd"
+              [class.is-invalid]="form.get('location')?.invalid && form.get('location')?.touched">
+            <div class="invalid-feedback">Location is required.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Order Price <span class="text-danger">*</span></label>
+            <input class="form-control" type="number" step="0.01" min="0.01" formControlName="orderPrice" placeholder="e.g. 25.00"
+              [class.is-invalid]="form.get('orderPrice')?.invalid && form.get('orderPrice')?.touched">
+            <div class="invalid-feedback">Must be greater than 0.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="close()" [disabled]="submitting">Cancel</button>
+        <button class="btn btn-primary" (click)="submit()" [disabled]="submitting">
+          {{ submitting ? 'Saving...' : (mode === 'add' ? 'Add Office' : 'Save Changes') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormArray, Validators, FormGroup, AbstractControl } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormArray, Validators, FormGroup } from '@angular/forms';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -12,6 +12,9 @@ import {
   ICellRendererParams,
 } from 'ag-grid-community';
 import { CompanyApiService } from '../../shared/services/company-api.service';
+import { CompanyModalComponent } from './components/company-modal/company-modal.component';
+import { OfficeModalComponent } from './components/office-modal/office-modal.component';
+import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -30,7 +33,7 @@ interface GridRow {
 @Component({
   selector: 'app-companies-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AgGridAngular],
+  imports: [CommonModule, ReactiveFormsModule, AgGridAngular, CompanyModalComponent, OfficeModalComponent, ConfirmModalComponent],
   templateUrl: './companies-page.component.html',
   styleUrl: './companies-page.component.scss',
 })
@@ -153,7 +156,8 @@ export class CompaniesPageComponent implements OnInit {
   // ─── Company modal ────────────────────────────────────────────
 
   get offices(): FormArray {
-    return this.companyForm.get('offices') as FormArray;
+    const offices = this.companyForm?.get('offices');
+    return offices instanceof FormArray ? offices : this.fb.array([]);
   }
 
   newOfficeGroup(): FormGroup {
@@ -171,6 +175,7 @@ export class CompaniesPageComponent implements OnInit {
   }
 
   hasDuplicateOfficeName(): boolean {
+    if (!this.companyForm?.get('offices')) return false;
     const names = this.offices.controls
       .map(c => (c.get('name')?.value ?? '').toLowerCase().trim())
       .filter(Boolean);
@@ -356,6 +361,4 @@ export class CompaniesPageComponent implements OnInit {
     this.feedbackType = type;
     setTimeout(() => { this.feedbackMessage = ''; this.feedbackType = ''; }, 4000);
   }
-
-  asFormGroup(ctrl: AbstractControl): FormGroup { return ctrl as FormGroup; }
 }

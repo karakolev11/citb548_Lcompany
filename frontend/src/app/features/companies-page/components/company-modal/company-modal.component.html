@@ -1,0 +1,70 @@
+<div class="modal-backdrop-custom" *ngIf="show" (click)="close()"></div>
+<div class="modal-custom" *ngIf="show">
+  <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ mode === 'create' ? 'Create Company' : 'Edit Company' }}</h5>
+        <button type="button" class="btn-close" (click)="close()" [disabled]="submitting"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+        <form [formGroup]="form">
+          <div class="mb-3">
+            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+            <input class="form-control" formControlName="name" placeholder="e.g. Acme Corp"
+              [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched">
+            <div class="invalid-feedback">Name is required.</div>
+          </div>
+          <div [class.mb-4]="mode === 'create'" [class.mb-2]="mode === 'edit'">
+            <label class="form-label">Company Address <span class="text-danger">*</span></label>
+            <input class="form-control" formControlName="address" placeholder="e.g. 123 Main St, Sofia"
+              [class.is-invalid]="form.get('address')?.invalid && form.get('address')?.touched">
+            <div class="invalid-feedback">Address is required (5-200 characters).</div>
+          </div>
+          <ng-container *ngIf="mode === 'create'">
+            <hr>
+            <h6 class="mb-3">Offices <span class="text-muted small">(at least one required)</span></h6>
+            <div formArrayName="offices">
+              <div *ngFor="let ctrl of offices.controls; let i = index" [formGroupName]="i" class="border rounded p-3 mb-2 bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <strong>Office {{ i + 1 }}</strong>
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                    (click)="removeOfficeRow(i)" [disabled]="offices.length === 1 || submitting">Remove</button>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input class="form-control" formControlName="name" placeholder="e.g. Sofia Office"
+                      [class.is-invalid]="asFormGroup(ctrl).get('name')?.invalid && asFormGroup(ctrl).get('name')?.touched">
+                    <div class="invalid-feedback">Required.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Location <span class="text-danger">*</span></label>
+                    <input class="form-control" formControlName="location" placeholder="e.g. 5 Vitosha Blvd"
+                      [class.is-invalid]="asFormGroup(ctrl).get('location')?.invalid && asFormGroup(ctrl).get('location')?.touched">
+                    <div class="invalid-feedback">Required.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Order Price <span class="text-danger">*</span></label>
+                    <input class="form-control" type="number" step="0.01" min="0.01" formControlName="orderPrice" placeholder="e.g. 25.00"
+                      [class.is-invalid]="asFormGroup(ctrl).get('orderPrice')?.invalid && asFormGroup(ctrl).get('orderPrice')?.touched">
+                    <div class="invalid-feedback">Must be &gt; 0.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="duplicateOfficeName" class="text-danger small mt-1">Office names must be unique within a company.</div>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2"
+              (click)="addOfficeRow()" [disabled]="submitting">+ Add Office</button>
+          </ng-container>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="close()" [disabled]="submitting">Cancel</button>
+        <button class="btn btn-primary" (click)="submit()" [disabled]="submitting">
+          {{ submitting ? 'Saving...' : (mode === 'create' ? 'Create Company' : 'Save Changes') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
