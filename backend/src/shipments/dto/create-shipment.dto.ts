@@ -1,38 +1,30 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
-import { ShipmentStatus } from '../enums/shipment-status.enum';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { DeliveryMode } from '../enums/delivery-mode.enum';
 
 export class CreateShipmentDto {
-	@IsOptional()
-	@IsNumber()
-	senderId?: number;
+	@IsString()
+	@IsNotEmpty()
+	receiverName: string;
 
-	@IsOptional()
-	@IsNumber()
-	receiverId?: number;
+	@IsEnum(DeliveryMode)
+	deliveryMode: DeliveryMode;
 
 	@IsOptional()
 	@IsNumber()
 	officeId?: number;
+
+	// For employee/admin to specify sender customer
+	@IsOptional()
+	@IsNumber()
+	senderCustomerId?: number;
 
 	@IsNumber()
 	@IsPositive()
 	weight: number;
 
 	@IsOptional()
-	@IsEnum(ShipmentStatus)
-	status?: ShipmentStatus;
-
-	@IsOptional()
 	@IsString()
 	description?: string;
-
-	@IsOptional()
-	@IsDateString()
-	estimatedDeliveryDate?: string;
-
-	@IsOptional()
-	@IsNumber()
-	orderPriceSnapshot?: number;
 
 	@IsOptional()
 	@IsString()
@@ -41,10 +33,6 @@ export class CreateShipmentDto {
 	@IsOptional()
 	@IsString()
 	deliveredCity?: string;
-
-	@IsOptional()
-	@IsString()
-	deliveredState?: string;
 
 	@IsOptional()
 	@IsString()

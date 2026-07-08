@@ -5,8 +5,10 @@ import { Shipment } from './entities/shipment.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ShipmentStatus } from './enums/shipment-status.enum';
+import { DeliveryMode } from './enums/delivery-mode.enum';
 import { Office } from 'src/company/entities/office.entity';
 import { Customer } from 'src/users/entities/customer.entity';
+import { Employee } from 'src/users/entities/employee.entity';
 
 @Injectable()
 export class ShipmentsService {
@@ -14,6 +16,7 @@ export class ShipmentsService {
     @InjectRepository(Shipment) private shipmentRepository: Repository<Shipment>,
     @InjectRepository(Office) private officeRepository: Repository<Office>,
     @InjectRepository(Customer) private customerRepository: Repository<Customer>,
+    @InjectRepository(Employee) private employeeRepository: Repository<Employee>,
   ) {}
 
   private generateTrackingNumber(): string {
@@ -21,9 +24,7 @@ export class ShipmentsService {
   }
 
   private ensureExisting(shipment: Shipment | null, id: number): Shipment {
-    if (!shipment) {
-      throw new NotFoundException(`Shipment ${id} not found`);
-    }
+    if (!shipment) throw new NotFoundException(`Shipment ${id} not found`);
     return shipment;
   }
 
@@ -35,56 +36,109 @@ export class ShipmentsService {
 
   private async getCustomerIdByUserId(userId: number): Promise<number> {
     const customer = await this.customerRepository.findOne({ where: { userId } });
-    if (!customer) {
-      throw new ForbiddenException('Customer profile not found for authenticated user');
-    }
+    if (!customer) throw new ForbiddenException('Customer profile not found for authenticated user');
     return customer.id;
   }
 
   private ensureShipmentOwnedByCustomer(shipment: Shipment, customerId: number): void {
-    if (shipment.senderId !== customerId && shipment.receiverId !== customerId) {
+    if (shipment.senderId !== customerId) {
       throw new ForbiddenException('You can access only your own shipments');
     }
   }
 
-  public async create(createShipmentDto: CreateShipmentDto): Promise<Shipment> {
-    const shipment = new Shipment();
-    shipment.weight = createShipmentDto.weight;
-    shipment.deliveredAddress = createShipmentDto.deliveredAddress;
-    shipment.deliveredCity = createShipmentDto.deliveredCity;
-    shipment.deliveredZip = createShipmentDto.deliveredZip;
-    shipment.deliveredCountry = createShipmentDto.deliveredCountry;
-    shipment.description = createShipmentDto.description;
-    shipment.status = createShipmentDto.status ?? ShipmentStatus.PENDING;
-    shipment.trackingNumber = this.generateTrackingNumber();
-    if (createShipmentDto.orderPriceSnapshot !== undefined) {
-      shipment.orderPriceSnapshot = createShipmentDto.orderPriceSnapshot;
-    } else if (createShipmentDto.officeId) {
-      const office = await this.officeRepository.findOne({ where: { id: createShipmentDto.officeId } });
-      shipment.orderPriceSnapshot = office?.orderPrice ?? 0;
+  private computePriceSnapshot(office: Office, weight: number, deliveryMode: DeliveryMode): number {
+    const weightPrice = Number(office.pricePerKg) * weight;
+    const surcharge = deliveryMode === DeliveryMode.OFFICE
+      ? Number(office.officeSurcharge)
+      : Number(office.addressSurcharge);
+    return weightPrice + surcharge;
+  }
+
+  public async create(dto: CreateShipmentDto, userId: number, roleId: number): Promise<Shipment> {
+    let office: Office;
+    let senderId: number;
+
+    if (roleId === 3) {
+      const customer = await this.customerRepository.findOne({ where: { userId } });
+      if (!customer) throw new ForbiddenException('Customer profile not found');
+      senderId = customer.id;
+      if (!dto.officeId) throw new BadRequestException('officeId is required');
+      const found = await this.officeRepository.findOne({ where: { id: dto.officeId } });
+      if (!found) throw new NotFoundException(`Office ${dto.officeId} not found`);
+      office = found;
+    } else if (roleId === 2) {
+      const employee = await this.employeeRepository.findOne({ where: { userId } });
+      if (!employee) throw new ForbiddenException('Employee profile not found');
+      if (!employee.officeId) throw new BadRequestException('Employee has no assigned office');
+      const found = await this.officeRepository.findOne({ where: { id: employee.officeId } });
+      if (!found) throw new NotFoundException('Employee office not found');
+      office = found;
+      if (!dto.senderCustomerId) throw new BadRequestException('senderCustomerId is required for employee-created shipments');
+      senderId = dto.senderCustomerId;
+    } else {
+      if (!dto.officeId) throw new BadRequestException('officeId is required');
+      const found = await this.officeRepository.findOne({ where: { id: dto.officeId } });
+      if (!found) throw new NotFoundException(`Office ${dto.officeId} not found`);
+      office = found;
+      if (!dto.senderCustomerId) throw new BadRequestException('senderCustomerId is required');
+      senderId = dto.senderCustomerId;
     }
-    shipment.estimatedDeliveryDate = createShipmentDto.estimatedDeliveryDate
-      ? new Date(createShipmentDto.estimatedDeliveryDate)
-      : undefined;
-    if (createShipmentDto.senderId) (shipment as any).sender = { id: createShipmentDto.senderId };
-    if (createShipmentDto.receiverId) (shipment as any).receiver = { id: createShipmentDto.receiverId };
-    if (createShipmentDto.officeId) (shipment as any).office = { id: createShipmentDto.officeId };
+
+    const priceSnapshot = this.computePriceSnapshot(office, dto.weight, dto.deliveryMode);
+
+    const shipment = new Shipment();
+    shipment.receiverName = dto.receiverName;
+    shipment.deliveryMode = dto.deliveryMode;
+    shipment.weight = dto.weight;
+    shipment.description = dto.description;
+    shipment.status = ShipmentStatus.PENDING;
+    shipment.trackingNumber = this.generateTrackingNumber();
+    shipment.priceSnapshot = priceSnapshot;
+    shipment.creatorId = userId;
+    shipment.creatorRole = roleId;
+    shipment.senderId = senderId;
+    (shipment as any).office = { id: office.id };
+
+    if (dto.deliveryMode === DeliveryMode.ADDRESS) {
+      shipment.deliveredAddress = dto.deliveredAddress;
+      shipment.deliveredCity = dto.deliveredCity;
+      shipment.deliveredZip = dto.deliveredZip;
+      shipment.deliveredCountry = dto.deliveredCountry;
+    }
+
     return await this.shipmentRepository.save(shipment);
   }
 
   public async findAll(): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ relations: ['sender', 'receiver', 'office'] });
+    return await this.shipmentRepository.find({ relations: ['sender', 'office'] });
   }
 
   public async findOne(id: number): Promise<Shipment | null> {
-    return await this.shipmentRepository.findOne({ where: { id }, relations: ['sender', 'receiver', 'office'] });
+    return await this.shipmentRepository.findOne({ where: { id }, relations: ['sender', 'office'] });
   }
 
   public async findByTrackingNumber(trackingNumber: string): Promise<Shipment | null> {
-    return await this.shipmentRepository.findOne({
-      where: { trackingNumber },
-      relations: ['sender', 'receiver', 'office'],
-    });
+    return await this.shipmentRepository.findOne({ where: { trackingNumber }, relations: ['sender', 'office'] });
+  }
+
+  public async findByCustomerUserId(userId: number): Promise<Shipment[]> {
+    const customer = await this.customerRepository.findOne({ where: { userId } });
+    if (!customer) return [];
+    return this.shipmentRepository.find({ where: { senderId: customer.id }, relations: ['sender', 'office'] });
+  }
+
+  public async findByEmployeeUserId(userId: number): Promise<Shipment[]> {
+    const employee = await this.employeeRepository.findOne({ where: { userId } });
+    if (!employee?.officeId) return [];
+    return this.findByOfficeId(employee.officeId);
+  }
+
+  public async findBySenderId(senderId: number): Promise<Shipment[]> {
+    return await this.shipmentRepository.find({ where: { senderId }, relations: ['sender', 'office'] });
+  }
+
+  public async findByOfficeId(officeId: number): Promise<Shipment[]> {
+    return await this.shipmentRepository.find({ where: { officeId }, relations: ['sender', 'office'] });
   }
 
   public async findOneForCustomer(id: number, userId: number): Promise<Shipment | null> {
@@ -94,54 +148,10 @@ export class ShipmentsService {
     return shipment;
   }
 
-  public async findByTrackingNumberForCustomer(trackingNumber: string, userId: number): Promise<Shipment | null> {
-    const shipment = await this.findByTrackingNumber(trackingNumber);
-    if (!shipment) {
-      return null;
-    }
-    const customerId = await this.getCustomerIdByUserId(userId);
-    this.ensureShipmentOwnedByCustomer(shipment, customerId);
-    return shipment;
-  }
-
-  public async findBySenderId(senderId: number): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ where: { senderId }, relations: ['sender', 'receiver', 'office'] });
-  }
-
-  public async findBySenderIdForCustomer(senderId: number, userId: number): Promise<Shipment[]> {
-    const customerId = await this.getCustomerIdByUserId(userId);
-    if (customerId !== senderId) {
-      throw new ForbiddenException('Customers can query sender shipments only for themselves');
-    }
-    return this.findBySenderId(senderId);
-  }
-
-  public async findByReceiverId(receiverId: number): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ where: { receiverId }, relations: ['sender', 'receiver', 'office'] });
-  }
-
-  public async findByReceiverIdForCustomer(receiverId: number, userId: number): Promise<Shipment[]> {
-    const customerId = await this.getCustomerIdByUserId(userId);
-    if (customerId !== receiverId) {
-      throw new ForbiddenException('Customers can query receiver shipments only for themselves');
-    }
-    return this.findByReceiverId(receiverId);
-  }
-
-  public async findByOfficeId(officeId: number): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ where: { officeId }, relations: ['sender', 'receiver', 'office'] });
-  }
-
   public async update(id: number, updateShipmentDto: UpdateShipmentDto): Promise<Shipment | null> {
     const shipment = await this.findOne(id);
     if (!shipment) return null;
     Object.assign(shipment, updateShipmentDto);
-    if (updateShipmentDto.estimatedDeliveryDate) {
-      shipment.estimatedDeliveryDate = new Date(updateShipmentDto.estimatedDeliveryDate);
-    }
-    if ((updateShipmentDto as any).senderId) (shipment as any).sender = { id: (updateShipmentDto as any).senderId };
-    if ((updateShipmentDto as any).receiverId) (shipment as any).receiver = { id: (updateShipmentDto as any).receiverId };
-    if ((updateShipmentDto as any).officeId) (shipment as any).office = { id: (updateShipmentDto as any).officeId };
     return await this.shipmentRepository.save(shipment);
   }
 
@@ -150,18 +160,14 @@ export class ShipmentsService {
     const customerId = await this.getCustomerIdByUserId(userId);
     this.ensureShipmentOwnedByCustomer(shipment, customerId);
     this.assertCustomerCanMutate(shipment);
-
     const customerSafeUpdate: UpdateShipmentDto = {
       weight: updateShipmentDto.weight,
       description: updateShipmentDto.description,
-      estimatedDeliveryDate: updateShipmentDto.estimatedDeliveryDate,
       deliveredAddress: updateShipmentDto.deliveredAddress,
       deliveredCity: updateShipmentDto.deliveredCity,
-      deliveredState: updateShipmentDto.deliveredState,
       deliveredZip: updateShipmentDto.deliveredZip,
       deliveredCountry: updateShipmentDto.deliveredCountry,
     };
-
     return this.update(id, customerSafeUpdate);
   }
 
@@ -170,7 +176,6 @@ export class ShipmentsService {
     if (shipment.status !== ShipmentStatus.PENDING) {
       throw new BadRequestException('Only pending shipments can be marked in transit');
     }
-
     shipment.status = ShipmentStatus.IN_TRANSIT;
     return await this.shipmentRepository.save(shipment);
   }
@@ -180,7 +185,6 @@ export class ShipmentsService {
     if (shipment.status !== ShipmentStatus.IN_TRANSIT) {
       throw new BadRequestException('Only in-transit shipments can be marked delivered');
     }
-
     shipment.status = ShipmentStatus.DELIVERED;
     shipment.actualDeliveryDate = new Date();
     return await this.shipmentRepository.save(shipment);
@@ -191,21 +195,29 @@ export class ShipmentsService {
     if (shipment.status !== ShipmentStatus.PENDING) {
       throw new BadRequestException('Only pending shipments can be cancelled');
     }
-
     shipment.status = ShipmentStatus.CANCELLED;
     return await this.shipmentRepository.save(shipment);
+  }
+
+  public async cancelByCustomer(id: number, userId: number): Promise<Shipment> {
+    const shipment = this.ensureExisting(await this.findOne(id), id);
+    const customerId = await this.getCustomerIdByUserId(userId);
+    this.ensureShipmentOwnedByCustomer(shipment, customerId);
+    this.assertCustomerCanMutate(shipment);
+    return this.cancel(id);
   }
 
   public async softDelete(id: number): Promise<boolean> {
     const result = await this.shipmentRepository.softDelete(id);
     return result.affected! > 0;
   }
-
+  
   public async softDeleteByCustomer(id: number, userId: number): Promise<boolean> {
     const shipment = this.ensureExisting(await this.findOne(id), id);
     const customerId = await this.getCustomerIdByUserId(userId);
     this.ensureShipmentOwnedByCustomer(shipment, customerId);
     this.assertCustomerCanMutate(shipment);
-    return this.softDelete(id);
+    const result = await this.shipmentRepository.softDelete(id);
+    return result.affected! > 0;
   }
 }

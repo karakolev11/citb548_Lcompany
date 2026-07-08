@@ -1,7 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Shipment } from '../../models/domain.models';
+import { Customer, Shipment } from '../../models/domain.models';
+import { DeliveryMode } from '../../utils/delivery-mode.enum';
+
+export interface CreateShipmentPayload {
+  receiverName: string;
+  deliveryMode: DeliveryMode;
+  weight: number;
+  officeId?: number;
+  senderCustomerId?: number;
+  description?: string;
+  deliveredAddress?: string;
+  deliveredCity?: string;
+  deliveredZip?: string;
+  deliveredCountry?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ShipmentsApiService {
@@ -11,13 +25,7 @@ export class ShipmentsApiService {
     return this.http.get<Shipment[]>('/api/shipments');
   }
 
-  public createShipment(payload: {
-    senderId?: number;
-    receiverId?: number;
-    officeId?: number;
-    weight: number;
-    description?: string;
-  }): Observable<Shipment> {
+  public createShipment(payload: CreateShipmentPayload): Observable<Shipment> {
     return this.http.post<Shipment>('/api/shipments', payload);
   }
 
@@ -33,7 +41,7 @@ export class ShipmentsApiService {
     return this.http.patch<Shipment>(`/api/shipments/${id}/cancel`, {});
   }
 
-  public getShipmentByTracking(trackingNumber: string): Observable<Shipment | null> {
-    return this.http.get<Shipment | null>(`/api/shipments/tracking/${trackingNumber}`);
+  public getCustomers(): Observable<Customer[]> {
+    return this.http.get<Customer[]>('/api/customers');
   }
 }

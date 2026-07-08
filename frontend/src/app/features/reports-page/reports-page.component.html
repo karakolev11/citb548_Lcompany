@@ -40,9 +40,9 @@
             <td>{{ s.status }}</td>
             <td>{{ s.weight }}</td>
             <td>{{ s.office?.name ?? '—' }}</td>
-            <td>{{ s.orderPriceSnapshot ?? 0 | currency }}</td>
+            <td>{{ s.priceSnapshot ?? 0 | currency }}</td>
             <td>{{ s.sender?.firstName }} {{ s.sender?.lastName }}</td>
-            <td>{{ s.receiver?.firstName }} {{ s.receiver?.lastName }}</td>
+            <td>{{ s.receiverName ?? '—' }}</td>
           </tr>
           <tr *ngIf="shipments.length === 0">
             <td colspan="8" class="text-center text-muted">No shipments found.</td>

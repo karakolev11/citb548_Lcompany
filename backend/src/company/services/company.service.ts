@@ -38,7 +38,9 @@ export class CompanyService {
         manager.create(Office, {
           name: o.name,
           location: o.location,
-          orderPrice: o.orderPrice,
+          officeSurcharge: o.officeSurcharge,
+          addressSurcharge: o.addressSurcharge,
+          pricePerKg: o.pricePerKg,
           companyId: savedCompany.id,
         }),
       );

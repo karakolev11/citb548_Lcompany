@@ -14,13 +14,16 @@ export class ShipmentsController {
 
   @Post()
   @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
-  create(@Body() createShipmentDto: CreateShipmentDto) {
-    return this.shipmentsService.create(createShipmentDto);
+  create(@Body() createShipmentDto: CreateShipmentDto, @Request() req: any) {
+    return this.shipmentsService.create(createShipmentDto, req.user.sub, req.user.roleId);
   }
 
   @Get()
-  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE)
-  findAll() {
+  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
+  findAll(@Request() req: any) {
+    const { roleId, sub: userId } = req.user;
+    if (roleId === 3) return this.shipmentsService.findByCustomerUserId(userId);
+    if (roleId === 2) return this.shipmentsService.findByEmployeeUserId(userId);
     return this.shipmentsService.findAll();
   }
 
@@ -35,29 +38,14 @@ export class ShipmentsController {
 
   @Get('tracking/:trackingNumber')
   @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
-  findByTrackingNumber(@Param('trackingNumber') trackingNumber: string, @Request() req: any) {
-    if (req.user?.roleId === 3) {
-      return this.shipmentsService.findByTrackingNumberForCustomer(trackingNumber, req.user.sub);
-    }
+  findByTrackingNumber(@Param('trackingNumber') trackingNumber: string) {
     return this.shipmentsService.findByTrackingNumber(trackingNumber);
   }
 
   @Get('sender/:senderId')
-  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
-  findBySender(@Param('senderId') senderId: string, @Request() req: any) {
-    if (req.user?.roleId === 3) {
-      return this.shipmentsService.findBySenderIdForCustomer(+senderId, req.user.sub);
-    }
+  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE)
+  findBySender(@Param('senderId') senderId: string) {
     return this.shipmentsService.findBySenderId(+senderId);
-  }
-
-  @Get('receiver/:receiverId')
-  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
-  findByReceiver(@Param('receiverId') receiverId: string, @Request() req: any) {
-    if (req.user?.roleId === 3) {
-      return this.shipmentsService.findByReceiverIdForCustomer(+receiverId, req.user.sub);
-    }
-    return this.shipmentsService.findByReceiverId(+receiverId);
   }
 
   @Get('office/:officeId')
@@ -91,20 +79,17 @@ export class ShipmentsController {
   }
 
   @Patch(':id/cancel')
-  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE)
-  cancel(@Param('id') id: string) {
+  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE, UserRoles.CUSTOMER)
+  cancel(@Param('id') id: string, @Request() req: any) {
+    if (req.user?.roleId === 3) {
+      return this.shipmentsService.cancelByCustomer(+id, req.user.sub);
+    }
     return this.shipmentsService.cancel(+id);
   }
 
   @Delete(':id')
-  @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE)
+  @Roles(UserRoles.ADMIN)
   remove(@Param('id') id: string) {
     return this.shipmentsService.softDelete(+id);
-  }
-
-  @Delete(':id/customer-cancel')
-  @Roles(UserRoles.CUSTOMER)
-  removeByCustomer(@Param('id') id: string, @Request() req: any) {
-    return this.shipmentsService.softDeleteByCustomer(+id, req.user.sub);
   }
 }

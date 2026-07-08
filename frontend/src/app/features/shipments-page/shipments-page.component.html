@@ -1,20 +1,107 @@
-<section>
-  <h2>Shipments</h2>
-  <p *ngIf="feedbackMessage" [style.color]="feedbackType === 'error' ? '#b00020' : '#0a7a2f'">{{ feedbackMessage }}</p>
-  <form [formGroup]="shipmentForm" (ngSubmit)="createShipment()">
-    <input formControlName="senderId" type="number" placeholder="Sender customer ID" />
-    <input formControlName="receiverId" type="number" placeholder="Receiver customer ID" />
-    <input formControlName="officeId" type="number" placeholder="Office ID" />
-    <input formControlName="weight" type="number" step="0.1" placeholder="Weight" />
-    <input formControlName="description" placeholder="Description" />
-    <button type="submit">Create shipment</button>
-  </form>
-  <ul>
-    <li *ngFor="let shipment of shipments$ | async">
-      {{ shipment.id }} - {{ shipment.trackingNumber }} - {{ shipment.status }}
-      <button type="button" (click)="markInTransit(shipment.id)">Mark in transit</button>
-      <button type="button" (click)="markDelivered(shipment.id)">Mark delivered</button>
-      <button type="button" (click)="cancel(shipment.id)">Cancel</button>
-    </li>
-  </ul>
-</section>
+<div class="container-fluid py-3">
+
+  <div *ngIf="feedbackMessage" class="alert mb-3"
+    [class.alert-success]="feedbackType === 'success'"
+    [class.alert-danger]="feedbackType === 'error'">
+    {{ feedbackMessage }}
+  </div>
+
+  <!-- Action bar -->
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <button class="btn btn-primary" (click)="toggleCreateForm()">
+      {{ showCreateForm ? '✕ Close Form' : '+ Create Shipment' }}
+    </button>
+    <input class="form-control w-auto" placeholder="Quick filter..." (input)="onQuickFilter($event)">
+  </div>
+
+  <!-- Create shipment card (collapsible) -->
+  <div class="card mb-3" *ngIf="showCreateForm">
+    <div class="card-header"><strong>New Shipment</strong></div>
+    <div class="card-body">
+      <div *ngIf="formError" class="alert alert-danger">{{ formError }}</div>
+      <form [formGroup]="form" class="row g-3">
+
+        <div class="col-md-4">
+          <label class="form-label">Receiver Name <span class="text-danger">*</span></label>
+          <input class="form-control" formControlName="receiverName" placeholder="Full name"
+            [class.is-invalid]="form.get('receiverName')?.invalid && form.get('receiverName')?.touched">
+          <div class="invalid-feedback">Required.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Delivery Mode <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="deliveryMode">
+            <option [value]="DeliveryMode.OFFICE">Office Pickup</option>
+            <option [value]="DeliveryMode.ADDRESS">Address Delivery</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Weight (kg) <span class="text-danger">*</span></label>
+          <input class="form-control" type="number" step="0.1" min="0.1" formControlName="weight" placeholder="e.g. 2.5"
+            [class.is-invalid]="form.get('weight')?.invalid && form.get('weight')?.touched">
+          <div class="invalid-feedback">Must be > 0.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Office <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="officeId">
+            <option [value]="null">Select office...</option>
+            <option *ngFor="let o of offices" [value]="o.id">{{ o.name }}</option>
+          </select>
+        </div>
+
+        <!-- Employee/admin: select sender customer -->
+        <div class="col-md-4" *ngIf="isAdmin || isEmployee">
+          <label class="form-label">Sender Customer <span class="text-danger">*</span></label>
+          <select class="form-select" formControlName="senderCustomerId">
+            <option [value]="null">Select customer...</option>
+            <option *ngFor="let c of customers" [value]="c.id">{{ c.firstName }} {{ c.lastName }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Description</label>
+          <input class="form-control" formControlName="description" placeholder="Optional">
+        </div>
+
+        <!-- Address fields (shown only in address mode) -->
+        <ng-container *ngIf="isAddressMode">
+          <div class="col-md-3">
+            <label class="form-label">Street Address</label>
+            <input class="form-control" formControlName="deliveredAddress">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">City</label>
+            <input class="form-control" formControlName="deliveredCity">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">ZIP</label>
+            <input class="form-control" formControlName="deliveredZip">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Country</label>
+            <input class="form-control" formControlName="deliveredCountry">
+          </div>
+        </ng-container>
+
+        <div class="col-12">
+          <button class="btn btn-primary" (click)="submitCreate()" [disabled]="submitting">
+            {{ submitting ? 'Creating...' : 'Create Shipment' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Shipments grid -->
+  <ag-grid-angular
+    style="width: 100%; height: 520px;"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [animateRows]="true"
+    (gridReady)="onGridReady($event)">
+  </ag-grid-angular>
+
+</div>

@@ -12,8 +12,14 @@ export class Office extends BaseEntity {
     @Column()
     location!: string;
 
-    @Column({ type: 'numeric', name: 'order_price', default: 0 })
-    orderPrice!: number;
+    @Column({ type: 'numeric', name: 'office_surcharge', default: 0 })
+    officeSurcharge!: number;
+
+    @Column({ type: 'numeric', name: 'address_surcharge', default: 0 })
+    addressSurcharge!: number;
+
+    @Column({ type: 'numeric', name: 'price_per_kg', default: 0 })
+    pricePerKg!: number;
 
     @Column({ nullable: true })
     companyId?: number;

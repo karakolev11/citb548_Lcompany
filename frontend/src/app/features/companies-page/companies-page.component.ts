@@ -25,7 +25,9 @@ interface GridRow {
   name: string;
   address?: string;
   location?: string;
-  orderPrice?: number;
+  officeSurcharge?: number;
+  addressSurcharge?: number;
+  pricePerKg?: number;
   officesCount?: number;
   companyOfficesCount?: number;
 }
@@ -85,13 +87,21 @@ export class CompaniesPageComponent implements OnInit {
       },
     },
     {
-      headerName: 'Order Price',
+      headerName: 'Surcharge (Office / Address)',
+      flex: 1.5,
+      valueGetter: (params) => {
+        const row = params.data as GridRow;
+        if (row.rowType !== 'office') return '';
+        return `$${Number(row.officeSurcharge ?? 0).toFixed(2)} / $${Number(row.addressSurcharge ?? 0).toFixed(2)}`;
+      },
+    },
+    {
+      headerName: 'Price/kg',
       flex: 1,
       valueGetter: (params) => {
         const row = params.data as GridRow;
-        return row.rowType === 'office' ? Number(row.orderPrice) : null;
+        return row.rowType === 'office' ? `$${Number(row.pricePerKg ?? 0).toFixed(2)}` : '';
       },
-      valueFormatter: (params) => (params.value != null ? `$${Number(params.value).toFixed(2)}` : ''),
     },
     {
       headerName: 'Offices',
@@ -164,7 +174,9 @@ export class CompaniesPageComponent implements OnInit {
     return this.fb.group({
       name: ['', Validators.required],
       location: ['', Validators.required],
-      orderPrice: [null, [Validators.required, Validators.min(0.01)]],
+      officeSurcharge: [0, [Validators.required, Validators.min(0)]],
+      addressSurcharge: [0, [Validators.required, Validators.min(0)]],
+      pricePerKg: [0, [Validators.required, Validators.min(0)]],
     });
   }
 
@@ -228,7 +240,7 @@ export class CompaniesPageComponent implements OnInit {
     const call = this.companyModalMode === 'create'
       ? this.companyApi.createCompanyWithOffices({
           name: val.name.trim(), address: val.address.trim(),
-          offices: val.offices.map((o: any) => ({ name: o.name.trim(), location: o.location.trim(), orderPrice: Number(o.orderPrice) })),
+          offices: val.offices.map((o: any) => ({ name: o.name.trim(), location: o.location.trim(), officeSurcharge: Number(o.officeSurcharge), addressSurcharge: Number(o.addressSurcharge), pricePerKg: Number(o.pricePerKg) })),
         })
       : this.companyApi.updateCompany(this.companyEditId!, { name: val.name.trim(), address: val.address.trim() });
 
@@ -259,7 +271,9 @@ export class CompaniesPageComponent implements OnInit {
     this.officeForm = this.fb.group({
       name: ['', Validators.required],
       location: ['', Validators.required],
-      orderPrice: [null, [Validators.required, Validators.min(0.01)]],
+      officeSurcharge: [0, [Validators.required, Validators.min(0)]],
+      addressSurcharge: [0, [Validators.required, Validators.min(0)]],
+      pricePerKg: [0, [Validators.required, Validators.min(0)]],
     });
     this.showOfficeModal = true;
   }
@@ -276,7 +290,9 @@ export class CompaniesPageComponent implements OnInit {
     this.officeForm = this.fb.group({
       name: [row.name, Validators.required],
       location: [row.location ?? '', Validators.required],
-      orderPrice: [row.orderPrice ?? null, [Validators.required, Validators.min(0.01)]],
+      officeSurcharge: [row.officeSurcharge ?? 0, [Validators.required, Validators.min(0)]],
+      addressSurcharge: [row.addressSurcharge ?? 0, [Validators.required, Validators.min(0)]],
+      pricePerKg: [row.pricePerKg ?? 0, [Validators.required, Validators.min(0)]],
     });
     this.showOfficeModal = true;
   }
@@ -294,8 +310,8 @@ export class CompaniesPageComponent implements OnInit {
     const val = this.officeForm.getRawValue();
 
     const call = this.officeModalMode === 'add'
-      ? this.companyApi.createOffice({ name: val.name.trim(), location: val.location.trim(), orderPrice: Number(val.orderPrice), companyId: this.officeModalCompanyId! })
-      : this.companyApi.updateOffice(this.officeEditId!, { name: val.name.trim(), location: val.location.trim(), orderPrice: Number(val.orderPrice) });
+      ? this.companyApi.createOffice({ name: val.name.trim(), location: val.location.trim(), officeSurcharge: Number(val.officeSurcharge), addressSurcharge: Number(val.addressSurcharge), pricePerKg: Number(val.pricePerKg), companyId: this.officeModalCompanyId! })
+      : this.companyApi.updateOffice(this.officeEditId!, { name: val.name.trim(), location: val.location.trim(), officeSurcharge: Number(val.officeSurcharge), addressSurcharge: Number(val.addressSurcharge), pricePerKg: Number(val.pricePerKg) });
 
     call.subscribe({
       next: () => {
@@ -347,7 +363,7 @@ export class CompaniesPageComponent implements OnInit {
           const offices = [...(c.offices ?? [])].sort((a, b) => a.name.localeCompare(b.name));
           rows.push({ rowType: 'company', id: c.id, name: c.name, address: c.address, officesCount: offices.length });
           for (const o of offices) {
-            rows.push({ rowType: 'office', id: o.id, companyId: c.id, name: o.name, location: o.location, orderPrice: o.orderPrice, companyOfficesCount: offices.length });
+            rows.push({ rowType: 'office', id: o.id, companyId: c.id, name: o.name, location: o.location, officeSurcharge: o.officeSurcharge, addressSurcharge: o.addressSurcharge, pricePerKg: o.pricePerKg, companyOfficesCount: offices.length });
           }
         }
         this.rowData = rows;

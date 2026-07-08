@@ -3,10 +3,18 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Company, Office } from '../../models/domain.models';
 
+export interface OfficePayload {
+  name: string;
+  location: string;
+  officeSurcharge: number;
+  addressSurcharge: number;
+  pricePerKg: number;
+}
+
 export interface CreateCompanyWithOfficesPayload {
   name: string;
   address: string;
-  offices: { name: string; location: string; orderPrice: number }[];
+  offices: OfficePayload[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,11 +45,11 @@ export class CompanyApiService {
     return this.http.get<Office[]>('/api/offices');
   }
 
-  public createOffice(payload: { name: string; location: string; orderPrice?: number; companyId?: number }): Observable<Office> {
+  public createOffice(payload: OfficePayload & { companyId: number }): Observable<Office> {
     return this.http.post<Office>('/api/offices', payload);
   }
 
-  public updateOffice(id: number, payload: Partial<{ name: string; location: string; orderPrice: number; companyId: number }>): Observable<Office> {
+  public updateOffice(id: number, payload: Partial<OfficePayload>): Observable<Office> {
     return this.http.patch<Office>(`/api/offices/${id}`, payload);
   }
 

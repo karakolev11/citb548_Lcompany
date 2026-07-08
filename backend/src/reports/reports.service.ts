@@ -12,7 +12,6 @@ export interface ShipmentFilters {
   status?: ShipmentStatus;
   officeId?: number;
   senderId?: number;
-  receiverId?: number;
 }
 
 export interface OfficeRevenueItem {
@@ -64,8 +63,7 @@ export class ReportsService {
     if (filters.status) where['status'] = filters.status;
     if (filters.officeId) where['officeId'] = filters.officeId;
     if (filters.senderId) where['senderId'] = filters.senderId;
-    if (filters.receiverId) where['receiverId'] = filters.receiverId;
-    return this.shipmentRepo.find({ where, relations: ['sender', 'receiver', 'office'] });
+    return this.shipmentRepo.find({ where, relations: ['sender', 'office'] });
   }
 
   async getCustomerShipments(userId: number, filters: ShipmentFilters): Promise<Shipment[]> {
@@ -73,7 +71,7 @@ export class ReportsService {
     if (!customer) return [];
     const where: Record<string, unknown> = { senderId: customer.id };
     if (filters.status) where['status'] = filters.status;
-    return this.shipmentRepo.find({ where, relations: ['sender', 'receiver', 'office'] });
+    return this.shipmentRepo.find({ where, relations: ['sender', 'office'] });
   }
 
   async getOfficeRevenue(): Promise<OfficeRevenueItem[]> {
@@ -82,7 +80,7 @@ export class ReportsService {
 
     for (const office of offices) {
       const shipments = await this.shipmentRepo.find({ where: { officeId: office.id } });
-      const revenue = shipments.reduce((sum, s) => sum + Number(s.orderPriceSnapshot ?? 0), 0);
+      const revenue = shipments.reduce((sum, s) => sum + Number(s.priceSnapshot ?? 0), 0);
       result.push({
         officeId: office.id,
         officeName: office.name,
@@ -123,17 +121,14 @@ export class ReportsService {
     const result: CustomerReportItem[] = [];
 
     for (const c of customers) {
-      const [sent, received] = await Promise.all([
-        this.shipmentRepo.count({ where: { senderId: c.id } }),
-        this.shipmentRepo.count({ where: { receiverId: c.id } }),
-      ]);
+      const sent = await this.shipmentRepo.count({ where: { senderId: c.id } });
       result.push({
         customerId: c.id,
         firstName: c.firstName,
         lastName: c.lastName,
         companyName: c.company?.name ?? null,
         sentCount: sent,
-        receivedCount: received,
+        receivedCount: 0,
       });
     }
 

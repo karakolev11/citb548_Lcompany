@@ -22,8 +22,16 @@ export class CreateOfficeInlineDto {
   location!: string;
 
   @IsNumber()
-  @IsPositive()
-  orderPrice!: number;
+  @Min(0)
+  officeSurcharge!: number;
+
+  @IsNumber()
+  @Min(0)
+  addressSurcharge!: number;
+
+  @IsNumber()
+  @Min(0)
+  pricePerKg!: number;
 }
 
 export class CreateCompanyWithOfficesDto {

@@ -18,14 +18,12 @@ export class ReportsController {
     @Query('status') status?: string,
     @Query('officeId') officeId?: string,
     @Query('senderId') senderId?: string,
-    @Query('receiverId') receiverId?: string,
     @Request() req?: any,
   ) {
     const filters: ShipmentFilters = {
       status: status as ShipmentStatus | undefined,
       officeId: officeId ? +officeId : undefined,
       senderId: senderId ? +senderId : undefined,
-      receiverId: receiverId ? +receiverId : undefined,
     };
 
     if (req?.user?.roleId === 3) {

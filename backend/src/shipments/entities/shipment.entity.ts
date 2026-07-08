@@ -3,6 +3,7 @@ import { Column, Entity, ManyToOne, JoinColumn } from "typeorm";
 import { Customer } from "src/users/entities/customer.entity";
 import { Office } from "src/company/entities/office.entity";
 import { ShipmentStatus } from "../enums/shipment-status.enum";
+import { DeliveryMode } from "../enums/delivery-mode.enum";
 
 @Entity({ name: 'shipments' })
 export class Shipment extends BaseEntity {
@@ -11,21 +12,17 @@ export class Shipment extends BaseEntity {
 	@JoinColumn({ name: 'sender_id' })
 	sender?: Customer;
 
-	@Column({ nullable: true })
+	@Column({ nullable: true, name: 'sender_id' })
 	senderId?: number;
 
-	@ManyToOne(() => Customer, { nullable: true })
-	@JoinColumn({ name: 'receiver_id' })
-	receiver?: Customer;
-
-	@Column({ nullable: true })
-	receiverId?: number;
+	@Column({ nullable: true, name: 'receiver_name' })
+	receiverName?: string;
 
 	@ManyToOne(() => Office, { nullable: true })
 	@JoinColumn({ name: 'office_id' })
 	office?: Office;
 
-	@Column({ nullable: true })
+	@Column({ nullable: true, name: 'office_id' })
 	officeId?: number;
 
 	@Column({ type: 'numeric' })
@@ -40,14 +37,23 @@ export class Shipment extends BaseEntity {
 	@Column({ nullable: true })
 	description?: string;
 
+	@Column({ type: 'enum', enum: DeliveryMode, default: DeliveryMode.OFFICE, name: 'delivery_mode' })
+	deliveryMode!: DeliveryMode;
+
+	@Column({ nullable: true, name: 'creator_id' })
+	creatorId?: number;
+
+	@Column({ nullable: true, name: 'creator_role' })
+	creatorRole?: number;
+
 	@Column({ type: 'timestamptz', nullable: true })
 	estimatedDeliveryDate?: Date;
 
 	@Column({ type: 'timestamptz', nullable: true })
 	actualDeliveryDate?: Date;
 
-	@Column({ type: 'numeric', nullable: true })
-	orderPriceSnapshot?: number;
+	@Column({ type: 'numeric', nullable: true, name: 'price_snapshot' })
+	priceSnapshot?: number;
 
 	@Column({ nullable: true })
 	deliveredAddress?: string;

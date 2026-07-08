@@ -1,4 +1,5 @@
 import { ShipmentStatus } from "../utils/shipment-status.enum";
+import { DeliveryMode } from "../utils/delivery-mode.enum";
 
 export interface Company {
   id: number;
@@ -11,7 +12,9 @@ export interface Office {
   id: number;
   name: string;
   location: string;
-  orderPrice: number;
+  officeSurcharge: number;
+  addressSurcharge: number;
+  pricePerKg: number;
   companyId?: number;
   company?: Company;
 }
@@ -44,14 +47,22 @@ export interface Employee {
 export interface Shipment {
   id: number;
   senderId?: number;
-  receiverId?: number;
   officeId?: number;
   sender?: Customer;
-  receiver?: Customer;
   office?: Office;
+  receiverName?: string;
+  deliveryMode: DeliveryMode;
   weight: number;
   status: ShipmentStatus;
   trackingNumber: string;
   description?: string;
-  orderPriceSnapshot?: number;
+  priceSnapshot?: number;
+  creatorId?: number;
+  creatorRole?: number;
+  deliveredAddress?: string;
+  deliveredCity?: string;
+  deliveredZip?: string;
+  deliveredCountry?: string;
+  estimatedDeliveryDate?: string;
+  actualDeliveryDate?: string;
 }

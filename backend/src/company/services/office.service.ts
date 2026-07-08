@@ -22,7 +22,9 @@ export class OfficeService {
     const office = new Office();
     office.name = createOfficeDto.name;
     office.location = createOfficeDto.location;
-    office.orderPrice = createOfficeDto.orderPrice;
+    office.officeSurcharge = createOfficeDto.officeSurcharge;
+    office.addressSurcharge = createOfficeDto.addressSurcharge;
+    office.pricePerKg = createOfficeDto.pricePerKg;
     office.company = company;
     office.companyId = company.id;
     return await this.officeRepository.save(office);
