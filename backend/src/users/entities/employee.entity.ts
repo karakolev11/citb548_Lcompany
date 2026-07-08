@@ -8,10 +8,10 @@ import { Office } from "src/company/entities/office.entity";
 export class Employee extends BaseEntity {
 
     @Column()
-    firstName: string;
+    firstName!: string;
 
     @Column()
-    lastName: string;
+    lastName!: string;
 
     @Column({ nullable: true })
     phone?: string;
@@ -27,21 +27,21 @@ export class Employee extends BaseEntity {
 
     @OneToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
-    user: User;
+    user!: User;
 
-    @Column()
-    userId: number;
+    @Column({ name: 'user_id' })
+    userId!: number;
 
     @ManyToOne(() => Company, company => company.employees)
     @JoinColumn({ name: 'company_id' })
-    company: Company;
+    company!: Company;
 
-    @Column()
-    companyId: number;
+    @Column({ name: 'company_id' })
+    companyId!: number;
 
     @ManyToOne(() => Office)
     @JoinColumn({ name: 'office_id' })
-    office: Office;
+    office!: Office;
 
     @Column({ nullable: true, name: 'office_id' })
     officeId?: number;

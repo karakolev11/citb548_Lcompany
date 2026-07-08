@@ -7,10 +7,10 @@ import { Company } from "src/company/entities/company.entity";
 export class Customer extends BaseEntity {
 
     @Column()
-    firstName: string;
+    firstName!: string;
 
     @Column()
-    lastName: string;
+    lastName!: string;
 
     @Column({ nullable: true })
     phone?: string;
@@ -32,15 +32,15 @@ export class Customer extends BaseEntity {
 
     @OneToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
-    user: User;
+    user!: User;
 
-    @Column()
-    userId: number;
+    @Column({ name: 'user_id' })
+    userId!: number;
 
     @ManyToOne(() => Company, company => company.customers, { nullable: true })
     @JoinColumn({ name: 'company_id' })
     company?: Company;
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, name: 'company_id' })
     companyId?: number;
 }

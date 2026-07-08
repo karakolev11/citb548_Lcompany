@@ -71,8 +71,8 @@ export class UsersPageComponent implements OnInit {
     department: [''],
     jobTitle: [''],
     employeeId: [''],
-    companyId: [null as number | null, Validators.required],
-    officeId: [null as number | null, Validators.required],
+    companyId: [null as number | null, [Validators.required, Validators.min(1)]],
+    officeId: [null as number | null, [Validators.required, Validators.min(1)]],
   });
 
   readonly adminForm = this.fb.group({
@@ -208,6 +208,7 @@ export class UsersPageComponent implements OnInit {
     this.employeeModalMode = 'create';
     this.employeeEditId = null;
     this.employeeModalError = '';
+    this.employeeForm.enable();
     this.employeeForm.reset({
       username: '', email: '', password: '', firstName: '', lastName: '', phone: '',
       department: '', jobTitle: '', employeeId: '', companyId: null, officeId: null,
@@ -225,6 +226,7 @@ export class UsersPageComponent implements OnInit {
     this.employeeModalMode = 'edit';
     this.employeeEditId = id;
     this.employeeModalError = '';
+    this.employeeForm.enable();
     this.employeeForm.reset({
       username: employee.user?.username ?? '',
       email: employee.user?.email ?? '',
@@ -256,15 +258,23 @@ export class UsersPageComponent implements OnInit {
       return;
     }
     if (this.employeeForm.invalid) {
+      this.employeeModalError = 'Please fill all required fields, including company and office.';
       this.employeeForm.markAllAsTouched();
       return;
     }
 
     this.employeeModalSubmitting = true;
     this.employeeModalError = '';
-    this.employeeForm.disable();
+    this.employeeForm.disable({ emitEvent: false });
 
     const value = this.employeeForm.getRawValue();
+    const officeId = this.toPositiveInt(value.officeId);
+    if (!officeId) {
+      this.employeeModalSubmitting = false;
+      this.employeeForm.enable();
+      this.employeeModalError = 'Please select a valid office.';
+      return;
+    }
 
     if (this.employeeModalMode === 'create') {
       const payload: CreateEmployeeWithUserPayload = {
@@ -277,7 +287,7 @@ export class UsersPageComponent implements OnInit {
         department: (value.department ?? '').trim() || undefined,
         jobTitle: (value.jobTitle ?? '').trim() || undefined,
         employeeId: (value.employeeId ?? '').trim() || undefined,
-        officeId: Number(value.officeId),
+        officeId,
       };
       this.usersApi.createEmployeeWithUser(payload).subscribe({
         next: () => {
@@ -305,7 +315,7 @@ export class UsersPageComponent implements OnInit {
       department: (value.department ?? '').trim() || undefined,
       jobTitle: (value.jobTitle ?? '').trim() || undefined,
       employeeId: (value.employeeId ?? '').trim() || undefined,
-      officeId: Number(value.officeId),
+      officeId,
     };
 
     this.usersApi.updateEmployee(this.employeeEditId!, updatePayload).subscribe({
@@ -326,6 +336,7 @@ export class UsersPageComponent implements OnInit {
 
   openCreateAdminModal(): void {
     this.adminModalError = '';
+    this.adminForm.enable();
     this.adminForm.reset({ username: '', email: '', password: '' });
     this.showAdminModal = true;
   }
@@ -337,6 +348,7 @@ export class UsersPageComponent implements OnInit {
 
   submitAdminModal(): void {
     if (this.adminForm.invalid) {
+      this.adminModalError = 'Please fill all required fields.';
       this.adminForm.markAllAsTouched();
       return;
     }
@@ -423,5 +435,13 @@ export class UsersPageComponent implements OnInit {
     const company = this.companies.find(c => c.id === companyId);
     const offices = [...(company?.offices ?? [])].sort((a, b) => a.name.localeCompare(b.name));
     return offices;
+  }
+
+  private toPositiveInt(value: unknown): number | null {
+    const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      return null;
+    }
+    return parsed;
   }
 }
