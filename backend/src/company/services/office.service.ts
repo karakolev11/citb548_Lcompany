@@ -13,11 +13,19 @@ export class OfficeService {
     @InjectRepository(Company) private companyRepository: Repository<Company>,
   ) {}
 
+  private ensureSurchargeOrder(officeSurcharge: number, addressSurcharge: number): void {
+    if (officeSurcharge >= addressSurcharge) {
+      throw new BadRequestException('officeSurcharge must be less than addressSurcharge');
+    }
+  }
+
   public async create(createOfficeDto: CreateOfficeDto): Promise<Office> {
     const company = await this.companyRepository.findOne({ where: { id: createOfficeDto.companyId } });
     if (!company) {
       throw new NotFoundException(`Company ${createOfficeDto.companyId} not found`);
     }
+
+    this.ensureSurchargeOrder(createOfficeDto.officeSurcharge, createOfficeDto.addressSurcharge);
 
     const office = new Office();
     office.name = createOfficeDto.name;
@@ -46,6 +54,10 @@ export class OfficeService {
 
   public async update(id: number, updateOfficeDto: UpdateOfficeDto): Promise<Office> {
     const office = await this.findOne(id);
+
+    const nextOfficeSurcharge = updateOfficeDto.officeSurcharge ?? office.officeSurcharge;
+    const nextAddressSurcharge = updateOfficeDto.addressSurcharge ?? office.addressSurcharge;
+    this.ensureSurchargeOrder(nextOfficeSurcharge, nextAddressSurcharge);
 
     if (updateOfficeDto.companyId !== undefined) {
       const company = await this.companyRepository.findOne({ where: { id: updateOfficeDto.companyId } });
