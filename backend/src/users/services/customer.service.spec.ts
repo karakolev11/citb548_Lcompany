@@ -37,10 +37,12 @@ describe('CustomerService', () => {
     jest.clearAllMocks();
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
+  // Verifies: creates customer with linked user account.
   it('creates customer with linked user account', async () => {
     usersService.findOneByUsername.mockResolvedValue(null);
     usersService.findOneByEmail.mockResolvedValue(null);

@@ -45,6 +45,7 @@ describe('CompanyController', () => {
     controller = module.get<CompanyController>(CompanyController);
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });

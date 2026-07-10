@@ -17,6 +17,7 @@ describe('CompanyService', () => {
     service = module.get<CompanyService>(CompanyService);
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

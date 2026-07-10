@@ -45,6 +45,7 @@ describe('CustomersController', () => {
     controller = module.get<CustomersController>(CustomersController);
   });
 
+  // Verifies: routes admin customer create-with-user to service.
   it('routes admin customer create-with-user to service', () => {
     const payload = {
       username: 'customer1',

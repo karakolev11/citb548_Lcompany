@@ -45,6 +45,7 @@ describe('UsersController', () => {
     controller = module.get<UsersController>(UsersController);
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });

@@ -42,10 +42,12 @@ describe('EmployeeService', () => {
     jest.clearAllMocks();
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
+  // Verifies: creates employee with required employee type.
   it('creates employee with required employee type', async () => {
     officeRepository.findOne.mockResolvedValue({ id: 3, companyId: 9 });
     employeeRepository.save.mockImplementation(async (entity) => ({ id: 1, ...entity }));
@@ -62,6 +64,7 @@ describe('EmployeeService', () => {
     expect(result.companyId).toBe(9);
   });
 
+  // Verifies: creates employee with user and persists employee type.
   it('creates employee with user and persists employee type', async () => {
     officeRepository.findOne.mockResolvedValue({ id: 3, companyId: 9 });
     usersService.findOneByUsername.mockResolvedValue(null);

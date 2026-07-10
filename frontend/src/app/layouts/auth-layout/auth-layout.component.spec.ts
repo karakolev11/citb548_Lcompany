@@ -17,6 +17,7 @@ describe('AuthLayoutComponent', () => {
     fixture.detectChanges();
   });
 
+  // Verifies: should create.
   it('should create', () => {
     expect(component).toBeTruthy();
   });

@@ -13,6 +13,7 @@ describe('RoleGuard', () => {
       }),
     } as any);
 
+  // Verifies: should allow requests when no roles are required.
   it('should allow requests when no roles are required', () => {
     const reflector = {
       getAllAndOverride: jest.fn().mockReturnValue(undefined),
@@ -22,6 +23,7 @@ describe('RoleGuard', () => {
     expect(guard.canActivate(createExecutionContext())).toBe(true);
   });
 
+  // Verifies: should allow user with required role.
   it('should allow user with required role', () => {
     const reflector = {
       getAllAndOverride: jest.fn().mockReturnValue([UserRoles.ADMIN]),
@@ -31,6 +33,7 @@ describe('RoleGuard', () => {
     expect(guard.canActivate(createExecutionContext(1))).toBe(true);
   });
 
+  // Verifies: should reject user with missing or wrong role.
   it('should reject user with missing or wrong role', () => {
     const reflector = {
       getAllAndOverride: jest.fn().mockReturnValue([UserRoles.ADMIN]),

@@ -36,6 +36,7 @@ describe('ReportsService', () => {
     jest.clearAllMocks();
   });
 
+  // Verifies: returns customer shipments where customer is sender or receiver.
   it('returns customer shipments where customer is sender or receiver', async () => {
     customerRepo.findOne.mockResolvedValue({ id: 12, userId: 100 });
     shipmentRepo.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -48,6 +49,7 @@ describe('ReportsService', () => {
     expect(result).toHaveLength(2);
   });
 
+  // Verifies: counts sent and received shipments in customer report.
   it('counts sent and received shipments in customer report', async () => {
     customerRepo.find.mockResolvedValue([
       { id: 4, firstName: 'A', lastName: 'B', company: null },
@@ -67,6 +69,7 @@ describe('ReportsService', () => {
     ]);
   });
 
+  // Verifies: returns employee type in employee report.
   it('returns employee type in employee report', async () => {
     employeeRepo.find.mockResolvedValue([
       {
@@ -90,6 +93,7 @@ describe('ReportsService', () => {
     ]);
   });
 
+  // Verifies: returns shipments registered by a given employee.
   it('returns shipments registered by a given employee', async () => {
     employeeRepo.findOne.mockResolvedValue({ id: 7, userId: 101 });
     shipmentRepo.find.mockResolvedValue([{ id: 2 }]);
@@ -102,6 +106,7 @@ describe('ReportsService', () => {
     expect(result).toEqual([{ id: 2 }]);
   });
 
+  // Verifies: returns shipments sent but not received.
   it('returns shipments sent but not received', async () => {
     shipmentRepo.find.mockResolvedValue([
       { id: 1, status: 'PENDING' },
@@ -118,6 +123,7 @@ describe('ReportsService', () => {
     ]);
   });
 
+  // Verifies: returns shipments sent by a customer.
   it('returns shipments sent by a customer', async () => {
     shipmentRepo.find.mockResolvedValue([{ id: 5 }]);
 
@@ -129,6 +135,7 @@ describe('ReportsService', () => {
     expect(result).toEqual([{ id: 5 }]);
   });
 
+  // Verifies: returns shipments received by a customer.
   it('returns shipments received by a customer', async () => {
     shipmentRepo.find.mockResolvedValue([{ id: 6 }]);
 
@@ -140,6 +147,7 @@ describe('ReportsService', () => {
     expect(result).toEqual([{ id: 6 }]);
   });
 
+  // Verifies: filters office revenue by shipment createdAt period.
   it('filters office revenue by shipment createdAt period', async () => {
     officeRepo.find.mockResolvedValue([
       { id: 1, name: 'Office 1', company: { id: 20, name: 'LCompany' } },
@@ -164,6 +172,7 @@ describe('ReportsService', () => {
     ]);
   });
 
+  // Verifies: aggregates company revenue from createdAt-filtered office revenue.
   it('aggregates company revenue from createdAt-filtered office revenue', async () => {
     officeRepo.find.mockResolvedValue([
       { id: 1, name: 'Office 1', company: { id: 20, name: 'LCompany' } },

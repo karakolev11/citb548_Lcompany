@@ -49,30 +49,35 @@ describe('ReportsController', () => {
     controller = module.get<ReportsController>(ReportsController);
   });
 
+  // Verifies: routes employee shipment report to dedicated service method.
   it('routes employee shipment report to dedicated service method', () => {
     controller.getShipmentsByEmployee('7');
 
     expect(service.getShipmentsRegisteredByEmployee).toHaveBeenCalledWith(7);
   });
 
+  // Verifies: routes sent-not-received report to dedicated service method.
   it('routes sent-not-received report to dedicated service method', () => {
     controller.getSentButNotReceivedShipments();
 
     expect(service.getSentButNotReceivedShipments).toHaveBeenCalled();
   });
 
+  // Verifies: routes sent-by-customer report to dedicated service method.
   it('routes sent-by-customer report to dedicated service method', () => {
     controller.getShipmentsSentByCustomer('9');
 
     expect(service.getShipmentsSentByCustomer).toHaveBeenCalledWith(9);
   });
 
+  // Verifies: routes received-by-customer report to dedicated service method.
   it('routes received-by-customer report to dedicated service method', () => {
     controller.getShipmentsReceivedByCustomer('12');
 
     expect(service.getShipmentsReceivedByCustomer).toHaveBeenCalledWith(12);
   });
 
+  // Verifies: passes createdAt period filters to office revenue report.
   it('passes createdAt period filters to office revenue report', () => {
     controller.getOfficeRevenue('2026-02-01T00:00:00.000Z', '2026-02-28T23:59:59.999Z');
 
@@ -82,6 +87,7 @@ describe('ReportsController', () => {
     });
   });
 
+  // Verifies: passes createdAt period filters to company revenue report.
   it('passes createdAt period filters to company revenue report', () => {
     controller.getCompanyRevenue('2026-02-01T00:00:00.000Z', '2026-02-28T23:59:59.999Z');
 

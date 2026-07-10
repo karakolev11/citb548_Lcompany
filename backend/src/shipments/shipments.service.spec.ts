@@ -42,10 +42,12 @@ describe('ShipmentsService', () => {
     jest.clearAllMocks();
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
+  // Verifies: marks pending shipment as in transit.
   it('marks pending shipment as in transit', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.PENDING });
     repositoryMock.save.mockImplementation(async (entity) => entity);
@@ -56,12 +58,14 @@ describe('ShipmentsService', () => {
     expect(repositoryMock.save).toHaveBeenCalled();
   });
 
+  // Verifies: rejects markInTransit for non-pending shipment.
   it('rejects markInTransit for non-pending shipment', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.DELIVERED });
 
     await expect(service.markInTransit(1)).rejects.toThrow(BadRequestException);
   });
 
+  // Verifies: marks in-transit shipment as delivered and sets actual delivery date.
   it('marks in-transit shipment as delivered and sets actual delivery date', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.IN_TRANSIT });
     repositoryMock.save.mockImplementation(async (entity) => entity);
@@ -72,6 +76,7 @@ describe('ShipmentsService', () => {
     expect(result.actualDeliveryDate).toBeInstanceOf(Date);
   });
 
+  // Verifies: rejects customer update for non-pending shipment.
   it('rejects customer update for non-pending shipment', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.IN_TRANSIT, senderId: 99 });
     customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
@@ -79,6 +84,7 @@ describe('ShipmentsService', () => {
     await expect(service.updateByCustomer(1, { description: 'new' }, 10)).rejects.toThrow(BadRequestException);
   });
 
+  // Verifies: allows customer update for pending shipment.
   it('allows customer update for pending shipment', async () => {
     repositoryMock.findOne
       .mockResolvedValueOnce({ id: 1, status: ShipmentStatus.PENDING, senderId: 99 })
@@ -91,6 +97,7 @@ describe('ShipmentsService', () => {
     expect(result?.description).toBe('new');
   });
 
+  // Verifies: rejects customer update for shipment not owned by customer.
   it('rejects customer update for shipment not owned by customer', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.PENDING, senderId: 50, receiverCustomerId: 51 });
     customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
@@ -98,6 +105,7 @@ describe('ShipmentsService', () => {
     await expect(service.updateByCustomer(1, { description: 'new' }, 10)).rejects.toThrow(ForbiddenException);
   });
 
+  // Verifies: creates shipment with computed price snapshot and receiver customer fallback name.
   it('creates shipment with computed price snapshot and receiver customer fallback name', async () => {
     officeRepositoryMock.findOne.mockResolvedValue({ id: 5, pricePerKg: 10, officeSurcharge: 4, addressSurcharge: 8 });
     customerRepositoryMock.findOne
@@ -117,6 +125,7 @@ describe('ShipmentsService', () => {
     expect(result.receiverName).toBe('Jane Receiver');
   });
 
+  // Verifies: returns shipments where customer is sender or receiver.
   it('returns shipments where customer is sender or receiver', async () => {
     customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
     repositoryMock.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
@@ -129,6 +138,7 @@ describe('ShipmentsService', () => {
     expect(result).toHaveLength(2);
   });
 
+  // Verifies: allows customer to read shipment where they are receiver.
   it('allows customer to read shipment where they are receiver', async () => {
     repositoryMock.findOne.mockResolvedValue({ id: 1, receiverCustomerId: 99, senderId: 50, status: ShipmentStatus.PENDING });
     customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
@@ -138,6 +148,7 @@ describe('ShipmentsService', () => {
     expect(result?.id).toBe(1);
   });
 
+  // Verifies: requires receiver name or receiver customer when creating shipment.
   it('requires receiver name or receiver customer when creating shipment', async () => {
     officeRepositoryMock.findOne.mockResolvedValue({ id: 5, pricePerKg: 10, officeSurcharge: 4, addressSurcharge: 8 });
     customerRepositoryMock.findOne.mockResolvedValue({ id: 11, userId: 10 });

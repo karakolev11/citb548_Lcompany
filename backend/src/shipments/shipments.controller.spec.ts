@@ -60,10 +60,12 @@ describe('ShipmentsController', () => {
     controller = module.get<ShipmentsController>(ShipmentsController);
   });
 
+  // Verifies: should be defined.
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
+  // Verifies: returns all shipments for employee users.
   it('returns all shipments for employee users', () => {
     controller.findAll({ user: { roleId: 2, sub: 15 } });
 
@@ -71,6 +73,7 @@ describe('ShipmentsController', () => {
     expect(service.findByCustomerUserId).not.toHaveBeenCalled();
   });
 
+  // Verifies: returns own shipments for customer users.
   it('returns own shipments for customer users', () => {
     controller.findAll({ user: { roleId: 3, sub: 44 } });
 
@@ -78,6 +81,7 @@ describe('ShipmentsController', () => {
     expect(service.findAll).not.toHaveBeenCalled();
   });
 
+  // Verifies: returns all shipments for admin users.
   it('returns all shipments for admin users', () => {
     controller.findAll({ user: { roleId: 1, sub: 5 } });
 
