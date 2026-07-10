@@ -3,6 +3,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Shipment } from '../../models/domain.models';
 
+export interface RevenuePeriodFilters {
+  from?: string;
+  to?: string;
+}
+
 export interface OfficeRevenueItem {
   officeId: number;
   officeName: string;
@@ -32,6 +37,7 @@ export interface EmployeeReportItem {
   employeeId: number;
   firstName: string;
   lastName: string;
+  employeeType: 'courier' | 'office_staff';
   jobTitle: string | null;
   department: string | null;
   companyName: string;
@@ -41,7 +47,6 @@ export interface ShipmentFilters {
   status?: string;
   officeId?: number;
   senderId?: number;
-  receiverId?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,16 +58,37 @@ export class ReportsApiService {
     if (filters.status) params = params.set('status', filters.status);
     if (filters.officeId != null) params = params.set('officeId', filters.officeId);
     if (filters.senderId != null) params = params.set('senderId', filters.senderId);
-    if (filters.receiverId != null) params = params.set('receiverId', filters.receiverId);
     return this.http.get<Shipment[]>('/api/reports/shipments', { params });
   }
 
-  public getOfficeRevenue(): Observable<OfficeRevenueItem[]> {
-    return this.http.get<OfficeRevenueItem[]>('/api/reports/office-revenue');
+  public getShipmentsByEmployee(employeeId: number): Observable<Shipment[]> {
+    return this.http.get<Shipment[]>(`/api/reports/shipments/by-employee/${employeeId}`);
   }
 
-  public getCompanyRevenue(): Observable<CompanyRevenueItem[]> {
-    return this.http.get<CompanyRevenueItem[]>('/api/reports/company-revenue');
+  public getSentButNotReceivedShipments(): Observable<Shipment[]> {
+    return this.http.get<Shipment[]>('/api/reports/shipments/sent-not-received');
+  }
+
+  public getShipmentsSentByCustomer(customerId: number): Observable<Shipment[]> {
+    return this.http.get<Shipment[]>(`/api/reports/shipments/sent-by-customer/${customerId}`);
+  }
+
+  public getShipmentsReceivedByCustomer(customerId: number): Observable<Shipment[]> {
+    return this.http.get<Shipment[]>(`/api/reports/shipments/received-by-customer/${customerId}`);
+  }
+
+  public getOfficeRevenue(filters: RevenuePeriodFilters = {}): Observable<OfficeRevenueItem[]> {
+    let params = new HttpParams();
+    if (filters.from) params = params.set('from', filters.from);
+    if (filters.to) params = params.set('to', filters.to);
+    return this.http.get<OfficeRevenueItem[]>('/api/reports/office-revenue', { params });
+  }
+
+  public getCompanyRevenue(filters: RevenuePeriodFilters = {}): Observable<CompanyRevenueItem[]> {
+    let params = new HttpParams();
+    if (filters.from) params = params.set('from', filters.from);
+    if (filters.to) params = params.set('to', filters.to);
+    return this.http.get<CompanyRevenueItem[]>('/api/reports/company-revenue', { params });
   }
 
   public getCustomers(): Observable<CustomerReportItem[]> {

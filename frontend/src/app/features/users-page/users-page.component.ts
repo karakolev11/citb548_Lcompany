@@ -12,7 +12,9 @@ import {
 } from 'ag-grid-community';
 import { Company, Customer, Employee, Office } from '../../models/domain.models';
 import {
+  CreateCustomerWithUserPayload,
   CreateEmployeeWithUserPayload,
+  UpdateCustomerPayload,
   UpdateEmployeeWithUserPayload,
   UsersApiService,
 } from '../../shared/services/users-api.service';
@@ -20,14 +22,16 @@ import { CompanyApiService } from '../../shared/services/company-api.service';
 import { AuthService } from '../../auth/services/auth.service';
 import { EmployeeModalComponent } from './components/employee-modal/employee-modal.component';
 import { AdminModalComponent } from './components/admin-modal/admin-modal.component';
+import { CustomerModalComponent } from './components/customer-modal/customer-modal.component';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 @Component({
   selector: 'app-users-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AgGridAngular, EmployeeModalComponent, AdminModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, AgGridAngular, EmployeeModalComponent, AdminModalComponent, CustomerModalComponent],
   templateUrl: './users-page.component.html',
+  styleUrl: './users-page.component.scss',
 })
 export class UsersPageComponent implements OnInit {
   private readonly usersApi = inject(UsersApiService);
@@ -61,12 +65,19 @@ export class UsersPageComponent implements OnInit {
   adminModalSubmitting = false;
   adminModalError = '';
 
+  showCustomerModal = false;
+  customerModalMode: 'create' | 'edit' = 'create';
+  customerModalSubmitting = false;
+  customerModalError = '';
+  customerEditId: number | null = null;
+
   readonly employeeForm = this.fb.group({
     username: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
+    employeeType: ['office_staff' as 'courier' | 'office_staff', Validators.required],
     phone: [''],
     department: [''],
     jobTitle: [''],
@@ -79,6 +90,21 @@ export class UsersPageComponent implements OnInit {
     username: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+  });
+
+  readonly customerForm = this.fb.group({
+    username: ['', [Validators.minLength(3)]],
+    email: ['', [Validators.email]],
+    password: ['', [Validators.minLength(8)]],
+    firstName: ['', Validators.required],
+    lastName: ['', Validators.required],
+    phone: [''],
+    address: [''],
+    city: [''],
+    state: [''],
+    zipCode: [''],
+    country: [''],
+    companyId: [null as number | null],
   });
 
   readonly employeeColumnDefs: ColDef[] = [
@@ -108,6 +134,11 @@ export class UsersPageComponent implements OnInit {
       headerName: 'Office',
       flex: 1.2,
       valueGetter: (params) => params.data?.office?.name ?? '—',
+    },
+    {
+      headerName: 'Type',
+      flex: 1,
+      valueGetter: (params) => this.formatEmployeeType(params.data?.employeeType),
     },
     {
       headerName: 'Department',
@@ -158,13 +189,33 @@ export class UsersPageComponent implements OnInit {
       valueGetter: (params) => params.data?.user?.email ?? '—',
     },
     {
+      headerName: 'Phone',
+      flex: 1,
+      valueGetter: (params) => params.data?.phone ?? '—',
+    },
+    {
       headerName: 'Company',
       flex: 1.2,
       valueGetter: (params) => {
-        const companyId = params.data?.companyId;
-        if (!companyId) return '—';
-        const company = this.companies.find(c => c.id === companyId);
-        return company?.name ?? '—';
+        return params.data?.company?.name ?? '—';
+      },
+    },
+    {
+      headerName: 'Actions',
+      flex: 1.2,
+      cellRenderer: (params: ICellRendererParams) => {
+        const id = params.data?.id;
+        return `<button class="btn btn-sm btn-outline-secondary me-1" data-action="edit" data-id="${id}">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${id}">Delete</button>`;
+      },
+      onCellClicked: (event) => {
+        const target = event.event?.target as HTMLElement;
+        const btn = target?.closest('[data-action]') as HTMLElement | null;
+        if (!btn) return;
+        const action = btn.dataset['action'];
+        const id = Number(btn.dataset['id']);
+        if (action === 'edit') this.openEditCustomerModal(id);
+        if (action === 'delete') this.deleteCustomer(id);
       },
     },
   ];
@@ -210,7 +261,7 @@ export class UsersPageComponent implements OnInit {
     this.employeeModalError = '';
     this.employeeForm.enable();
     this.employeeForm.reset({
-      username: '', email: '', password: '', firstName: '', lastName: '', phone: '',
+      username: '', email: '', password: '', firstName: '', lastName: '', employeeType: 'office_staff', phone: '',
       department: '', jobTitle: '', employeeId: '', companyId: null, officeId: null,
     });
     this.employeeForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
@@ -233,6 +284,7 @@ export class UsersPageComponent implements OnInit {
       password: '',
       firstName: employee.firstName ?? '',
       lastName: employee.lastName ?? '',
+      employeeType: employee.employeeType ?? 'office_staff',
       phone: employee.phone ?? '',
       department: employee.department ?? '',
       jobTitle: employee.jobTitle ?? '',
@@ -283,6 +335,7 @@ export class UsersPageComponent implements OnInit {
         password: value.password ?? '',
         firstName: (value.firstName ?? '').trim(),
         lastName: (value.lastName ?? '').trim(),
+        employeeType: value.employeeType ?? 'office_staff',
         phone: (value.phone ?? '').trim() || undefined,
         department: (value.department ?? '').trim() || undefined,
         jobTitle: (value.jobTitle ?? '').trim() || undefined,
@@ -311,6 +364,7 @@ export class UsersPageComponent implements OnInit {
       email: (value.email ?? '').trim(),
       firstName: (value.firstName ?? '').trim(),
       lastName: (value.lastName ?? '').trim(),
+      employeeType: value.employeeType ?? 'office_staff',
       phone: (value.phone ?? '').trim() || undefined,
       department: (value.department ?? '').trim() || undefined,
       jobTitle: (value.jobTitle ?? '').trim() || undefined,
@@ -339,6 +393,140 @@ export class UsersPageComponent implements OnInit {
     this.adminForm.enable();
     this.adminForm.reset({ username: '', email: '', password: '' });
     this.showAdminModal = true;
+  }
+
+  openCreateCustomerModal(): void {
+    this.customerModalMode = 'create';
+    this.customerEditId = null;
+    this.customerModalError = '';
+    this.customerForm.enable();
+    this.customerForm.reset({
+      username: '',
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: '',
+      companyId: null,
+    });
+    this.customerForm.get('username')?.setValidators([Validators.required, Validators.minLength(3)]);
+    this.customerForm.get('email')?.setValidators([Validators.required, Validators.email]);
+    this.customerForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
+    this.customerForm.get('username')?.updateValueAndValidity();
+    this.customerForm.get('email')?.updateValueAndValidity();
+    this.customerForm.get('password')?.updateValueAndValidity();
+    this.showCustomerModal = true;
+  }
+
+  openEditCustomerModal(id: number): void {
+    const customer = this.customers.find(c => c.id === id);
+    if (!customer) return;
+    this.customerModalMode = 'edit';
+    this.customerEditId = id;
+    this.customerModalError = '';
+    this.customerForm.enable();
+    this.customerForm.reset({
+      username: customer.user?.username ?? '',
+      email: customer.user?.email ?? '',
+      password: '',
+      firstName: customer.firstName ?? '',
+      lastName: customer.lastName ?? '',
+      phone: customer.phone ?? '',
+      address: customer.address ?? '',
+      city: customer.city ?? '',
+      state: customer.state ?? '',
+      zipCode: customer.zipCode ?? '',
+      country: customer.country ?? '',
+      companyId: customer.companyId ?? null,
+    });
+    this.customerForm.get('username')?.clearValidators();
+    this.customerForm.get('email')?.clearValidators();
+    this.customerForm.get('password')?.clearValidators();
+    this.customerForm.get('username')?.updateValueAndValidity();
+    this.customerForm.get('email')?.updateValueAndValidity();
+    this.customerForm.get('password')?.updateValueAndValidity();
+    this.showCustomerModal = true;
+  }
+
+  closeCustomerModal(): void {
+    if (this.customerModalSubmitting) return;
+    this.showCustomerModal = false;
+  }
+
+  submitCustomerModal(): void {
+    if (this.customerForm.invalid) {
+      this.customerModalError = 'Please fill all required fields.';
+      this.customerForm.markAllAsTouched();
+      return;
+    }
+
+    this.customerModalSubmitting = true;
+    this.customerModalError = '';
+    this.customerForm.disable({ emitEvent: false });
+    const value = this.customerForm.getRawValue();
+
+    if (this.customerModalMode === 'create') {
+      const payload: CreateCustomerWithUserPayload = {
+        username: (value.username ?? '').trim(),
+        email: (value.email ?? '').trim(),
+        password: value.password ?? '',
+        firstName: (value.firstName ?? '').trim(),
+        lastName: (value.lastName ?? '').trim(),
+        phone: (value.phone ?? '').trim() || undefined,
+        address: (value.address ?? '').trim() || undefined,
+        city: (value.city ?? '').trim() || undefined,
+        state: (value.state ?? '').trim() || undefined,
+        zipCode: (value.zipCode ?? '').trim() || undefined,
+        country: (value.country ?? '').trim() || undefined,
+        companyId: value.companyId ?? undefined,
+      };
+      this.usersApi.createCustomerWithUser(payload).subscribe({
+        next: () => {
+          this.showCustomerModal = false;
+          this.customerModalSubmitting = false;
+          this.setFeedback('Customer created.', 'success');
+          this.reload();
+        },
+        error: (error) => {
+          this.customerModalSubmitting = false;
+          this.customerForm.enable();
+          const msg = error?.error?.message;
+          this.customerModalError = Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Failed to create customer.');
+        },
+      });
+      return;
+    }
+
+    const payload: UpdateCustomerPayload = {
+      firstName: (value.firstName ?? '').trim(),
+      lastName: (value.lastName ?? '').trim(),
+      phone: (value.phone ?? '').trim() || undefined,
+      address: (value.address ?? '').trim() || undefined,
+      city: (value.city ?? '').trim() || undefined,
+      state: (value.state ?? '').trim() || undefined,
+      zipCode: (value.zipCode ?? '').trim() || undefined,
+      country: (value.country ?? '').trim() || undefined,
+      companyId: value.companyId ?? undefined,
+    };
+    this.usersApi.updateCustomer(this.customerEditId!, payload).subscribe({
+      next: () => {
+        this.showCustomerModal = false;
+        this.customerModalSubmitting = false;
+        this.setFeedback('Customer updated.', 'success');
+        this.reload();
+      },
+      error: (error) => {
+        this.customerModalSubmitting = false;
+        this.customerForm.enable();
+        const msg = error?.error?.message;
+        this.customerModalError = Array.isArray(msg) ? msg.join(', ') : (msg ?? 'Failed to update customer.');
+      },
+    });
   }
 
   closeAdminModal(): void {
@@ -390,6 +578,21 @@ export class UsersPageComponent implements OnInit {
     });
   }
 
+  deleteCustomer(id: number): void {
+    if (!confirm('Delete customer profile?')) {
+      return;
+    }
+    this.usersApi.deleteCustomer(id).subscribe({
+      next: () => {
+        this.setFeedback('Customer deleted.', 'success');
+        this.reload();
+      },
+      error: () => {
+        this.setFeedback('Failed to delete customer.', 'error');
+      },
+    });
+  }
+
   private setFeedback(message: string, type: 'success' | 'error'): void {
     this.feedbackMessage = message;
     this.feedbackType = type;
@@ -397,6 +600,10 @@ export class UsersPageComponent implements OnInit {
       this.feedbackMessage = '';
       this.feedbackType = '';
     }, 4000);
+  }
+
+  private formatEmployeeType(employeeType?: Employee['employeeType']): string {
+    return employeeType === 'courier' ? 'Courier' : 'Office Staff';
   }
 
   private reload(): void {

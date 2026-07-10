@@ -15,6 +15,13 @@ export class Shipment extends BaseEntity {
 	@Column({ nullable: true, name: 'sender_id' })
 	senderId?: number;
 
+	@ManyToOne(() => Customer, { nullable: true })
+	@JoinColumn({ name: 'receiver_customer_id' })
+	receiverCustomer?: Customer;
+
+	@Column({ nullable: true, name: 'receiver_customer_id' })
+	receiverCustomerId?: number;
+
 	@Column({ nullable: true, name: 'receiver_name' })
 	receiverName?: string;
 

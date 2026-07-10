@@ -1,32 +1,33 @@
-<section class="container py-4">
+<section class="container py-4 reports-page">
   <h2 class="mb-4">Reports</h2>
 
   <!-- Shipments report (all roles, customers see own) -->
-  <div class="card mb-4">
+  <div class="card mb-4 reports-page__card">
     <div class="card-header"><strong>Shipments</strong></div>
     <div class="card-body">
-      <form [formGroup]="shipmentsFilter" (ngSubmit)="applyShipmentFilters()" class="row g-2 mb-3">
-        <div class="col-auto">
+      <form [formGroup]="shipmentsFilter" (ngSubmit)="applyShipmentFilters()" class="row g-2 mb-3 align-items-end">
+        <div class="col-12 col-md-3">
+          <label class="form-label small text-muted">Status</label>
           <select class="form-select form-select-sm" formControlName="status">
             <option value="">All statuses</option>
             <option *ngFor="let s of statusOptions.slice(1)" [value]="s">{{ s }}</option>
           </select>
         </div>
-        <div class="col-auto">
+        <div class="col-12 col-md-3">
+          <label class="form-label small text-muted">Office ID</label>
           <input class="form-control form-control-sm" type="number" placeholder="Office ID" formControlName="officeId">
         </div>
-        <div class="col-auto" *ngIf="isBackoffice">
+        <div class="col-12 col-md-3" *ngIf="isBackoffice">
+          <label class="form-label small text-muted">Sender Customer ID</label>
           <input class="form-control form-control-sm" type="number" placeholder="Sender ID" formControlName="senderId">
         </div>
-        <div class="col-auto" *ngIf="isBackoffice">
-          <input class="form-control form-control-sm" type="number" placeholder="Receiver ID" formControlName="receiverId">
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+        <div class="col-12 col-md-3">
+          <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
         </div>
       </form>
 
-      <table class="table table-sm table-bordered" *ngIf="shipments$ | async as shipments; else loading">
+      <div class="table-responsive reports-page__table-wrap">
+      <table class="table table-sm table-bordered align-middle" *ngIf="shipments$ | async as shipments; else loading">
         <thead>
           <tr>
             <th>ID</th><th>Tracking #</th><th>Status</th><th>Weight</th>
@@ -42,20 +43,182 @@
             <td>{{ s.office?.name ?? '—' }}</td>
             <td>{{ s.priceSnapshot ?? 0 | currency }}</td>
             <td>{{ s.sender?.firstName }} {{ s.sender?.lastName }}</td>
-            <td>{{ s.receiverName ?? '—' }}</td>
+            <td>{{ shipmentReceiverLabel(s) }}</td>
           </tr>
           <tr *ngIf="shipments.length === 0">
             <td colspan="8" class="text-center text-muted">No shipments found.</td>
           </tr>
         </tbody>
       </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4" *ngIf="isBackoffice">
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 reports-page__card">
+        <div class="card-header"><strong>Shipments Registered By Employee</strong></div>
+        <div class="card-body">
+          <form [formGroup]="reportLookupForm" (ngSubmit)="loadEmployeeShipmentReport()" class="row g-2 mb-3 align-items-end">
+            <div class="col-12 col-sm-8">
+              <label class="form-label small text-muted">Employee ID</label>
+              <input class="form-control" type="number" formControlName="employeeId" placeholder="Enter employee ID">
+            </div>
+            <div class="col-12 col-sm-4">
+              <button type="submit" class="btn btn-outline-primary w-100">Load</button>
+            </div>
+          </form>
+
+          <div class="table-responsive reports-page__table-wrap">
+            <table class="table table-sm table-bordered" *ngIf="shipmentsByEmployee$ | async as shipments; else loading">
+              <thead>
+                <tr><th>Tracking #</th><th>Status</th><th>Sender</th><th>Receiver</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of shipments">
+                  <td>{{ s.trackingNumber }}</td>
+                  <td>{{ s.status }}</td>
+                  <td>{{ s.sender?.firstName }} {{ s.sender?.lastName }}</td>
+                  <td>{{ shipmentReceiverLabel(s) }}</td>
+                </tr>
+                <tr *ngIf="shipments.length === 0">
+                  <td colspan="4" class="text-center text-muted">Enter an employee ID to load shipments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="card h-100 reports-page__card">
+        <div class="card-header"><strong>Sent But Not Received</strong></div>
+        <div class="card-body">
+          <div class="table-responsive reports-page__table-wrap">
+            <table class="table table-sm table-bordered" *ngIf="sentButNotReceived$ | async as shipments; else loading">
+              <thead>
+                <tr><th>Tracking #</th><th>Status</th><th>Office</th><th>Receiver</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of shipments">
+                  <td>{{ s.trackingNumber }}</td>
+                  <td>{{ s.status }}</td>
+                  <td>{{ s.office?.name ?? '—' }}</td>
+                  <td>{{ shipmentReceiverLabel(s) }}</td>
+                </tr>
+                <tr *ngIf="shipments.length === 0">
+                  <td colspan="4" class="text-center text-muted">No pending or in-transit shipments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4 mt-4 reports-page__card" *ngIf="isBackoffice">
+    <div class="card-header"><strong>Customer Shipment Reports</strong></div>
+    <div class="card-body">
+      <form [formGroup]="reportLookupForm" (ngSubmit)="loadCustomerShipmentReports()" class="row g-2 mb-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">Customer ID</label>
+          <input class="form-control" type="number" formControlName="customerId" placeholder="Enter customer ID">
+        </div>
+        <div class="col-12 col-md-2">
+          <button type="submit" class="btn btn-outline-primary w-100">Load</button>
+        </div>
+      </form>
+
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+          <h6>Sent By Customer</h6>
+          <div class="table-responsive reports-page__table-wrap">
+            <table class="table table-sm table-bordered" *ngIf="shipmentsSentByCustomer$ | async as shipments; else loading">
+              <thead>
+                <tr><th>Tracking #</th><th>Status</th><th>Office</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of shipments">
+                  <td>{{ s.trackingNumber }}</td>
+                  <td>{{ s.status }}</td>
+                  <td>{{ s.office?.name ?? '—' }}</td>
+                </tr>
+                <tr *ngIf="shipments.length === 0">
+                  <td colspan="3" class="text-center text-muted">Enter a customer ID to load sent shipments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+          <h6>Received By Customer</h6>
+          <div class="table-responsive reports-page__table-wrap">
+            <table class="table table-sm table-bordered" *ngIf="shipmentsReceivedByCustomer$ | async as shipments; else loading">
+              <thead>
+                <tr><th>Tracking #</th><th>Status</th><th>Office</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of shipments">
+                  <td>{{ s.trackingNumber }}</td>
+                  <td>{{ s.status }}</td>
+                  <td>{{ s.office?.name ?? '—' }}</td>
+                </tr>
+                <tr *ngIf="shipments.length === 0">
+                  <td colspan="3" class="text-center text-muted">Enter a customer ID to load received shipments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4 reports-page__card" *ngIf="isAdmin">
+    <div class="card-header"><strong>Company Revenue</strong></div>
+    <div class="card-body">
+      <form [formGroup]="revenuePeriodForm" (ngSubmit)="applyRevenueFilters()" class="row g-2 mb-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">From</label>
+          <input class="form-control" type="date" formControlName="from">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted">To</label>
+          <input class="form-control" type="date" formControlName="to">
+        </div>
+        <div class="col-12 col-md-4">
+          <button type="submit" class="btn btn-primary w-100">Apply Revenue Period</button>
+        </div>
+      </form>
+
+      <div class="table-responsive reports-page__table-wrap">
+      <table class="table table-sm table-bordered" *ngIf="companyRevenue$ | async as rows; else loading">
+        <thead>
+          <tr><th>Company</th><th>Offices</th><th>Total Revenue</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rows">
+            <td>{{ r.companyName }}</td>
+            <td>{{ r.officeCount }}</td>
+            <td>{{ r.totalRevenue | currency }}</td>
+          </tr>
+          <tr *ngIf="rows.length === 0">
+            <td colspan="3" class="text-center text-muted">No data.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
     </div>
   </div>
 
   <!-- Office revenue (admin/employee) -->
-  <div class="card mb-4" *ngIf="isBackoffice">
+  <div class="card mb-4 reports-page__card" *ngIf="isBackoffice">
     <div class="card-header"><strong>Office Revenue</strong></div>
     <div class="card-body">
+      <div class="table-responsive reports-page__table-wrap">
       <table class="table table-sm table-bordered" *ngIf="officeRevenue$ | async as rows; else loading">
         <thead>
           <tr><th>Office</th><th>Company</th><th>Shipments</th><th>Revenue</th></tr>
@@ -72,35 +235,15 @@
           </tr>
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- Company revenue (admin only) -->
-  <div class="card mb-4" *ngIf="isAdmin">
-    <div class="card-header"><strong>Company Revenue</strong></div>
-    <div class="card-body">
-      <table class="table table-sm table-bordered" *ngIf="companyRevenue$ | async as rows; else loading">
-        <thead>
-          <tr><th>Company</th><th>Offices</th><th>Total Revenue</th></tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of rows">
-            <td>{{ r.companyName }}</td>
-            <td>{{ r.officeCount }}</td>
-            <td>{{ r.totalRevenue | currency }}</td>
-          </tr>
-          <tr *ngIf="rows.length === 0">
-            <td colspan="3" class="text-center text-muted">No data.</td>
-          </tr>
-        </tbody>
-      </table>
+      </div>
     </div>
   </div>
 
   <!-- Customers report (admin/employee) -->
-  <div class="card mb-4" *ngIf="isBackoffice">
+  <div class="card mb-4 reports-page__card" *ngIf="isBackoffice">
     <div class="card-header"><strong>Customers</strong></div>
     <div class="card-body">
+      <div class="table-responsive reports-page__table-wrap">
       <table class="table table-sm table-bordered" *ngIf="customers$ | async as rows; else loading">
         <thead>
           <tr><th>Name</th><th>Company</th><th>Sent</th><th>Received</th></tr>
@@ -117,29 +260,33 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 
   <!-- Employees report (admin/employee) -->
-  <div class="card mb-4" *ngIf="isBackoffice">
+  <div class="card mb-4 reports-page__card" *ngIf="isBackoffice">
     <div class="card-header"><strong>Employees</strong></div>
     <div class="card-body">
+      <div class="table-responsive reports-page__table-wrap">
       <table class="table table-sm table-bordered" *ngIf="employees$ | async as rows; else loading">
         <thead>
-          <tr><th>Name</th><th>Job Title</th><th>Department</th><th>Company</th></tr>
+          <tr><th>Name</th><th>Type</th><th>Job Title</th><th>Department</th><th>Company</th></tr>
         </thead>
         <tbody>
           <tr *ngFor="let r of rows">
             <td>{{ r.firstName }} {{ r.lastName }}</td>
+            <td>{{ formatEmployeeType(r.employeeType) }}</td>
             <td>{{ r.jobTitle ?? '—' }}</td>
             <td>{{ r.department ?? '—' }}</td>
             <td>{{ r.companyName }}</td>
           </tr>
           <tr *ngIf="rows.length === 0">
-            <td colspan="4" class="text-center text-muted">No employees.</td>
+            <td colspan="5" class="text-center text-muted">No employees.</td>
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 

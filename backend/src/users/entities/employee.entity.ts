@@ -3,6 +3,7 @@ import { Column, Entity, ManyToOne, JoinColumn, OneToOne } from "typeorm";
 import { User } from "src/users/entities/user.entity";
 import { Company } from "src/company/entities/company.entity";
 import { Office } from "src/company/entities/office.entity";
+import { EmployeeType } from "src/users/enums/employee-type.enum";
 
 @Entity({ name: 'employees' })
 export class Employee extends BaseEntity {
@@ -24,6 +25,9 @@ export class Employee extends BaseEntity {
 
     @Column({ nullable: true, name: 'employee_id' })
     employeeId?: string;
+
+    @Column({ type: 'enum', enum: EmployeeType, name: 'employee_type', default: EmployeeType.OFFICE_STAFF })
+    employeeType!: EmployeeType;
 
     @OneToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })

@@ -9,6 +9,7 @@ import { DeliveryMode } from './enums/delivery-mode.enum';
 import { Office } from 'src/company/entities/office.entity';
 import { Customer } from 'src/users/entities/customer.entity';
 import { Employee } from 'src/users/entities/employee.entity';
+import { FindOptionsWhere } from 'typeorm';
 
 @Injectable()
 export class ShipmentsService {
@@ -46,6 +47,12 @@ export class ShipmentsService {
     }
   }
 
+  private ensureShipmentVisibleToCustomer(shipment: Shipment, customerId: number): void {
+    if (shipment.senderId !== customerId && shipment.receiverCustomerId !== customerId) {
+      throw new ForbiddenException('You can access only your own shipments');
+    }
+  }
+
   private computePriceSnapshot(office: Office, weight: number, deliveryMode: DeliveryMode): number {
     const weightPrice = Number(office.pricePerKg) * weight;
     const surcharge = deliveryMode === DeliveryMode.OFFICE
@@ -57,6 +64,7 @@ export class ShipmentsService {
   public async create(dto: CreateShipmentDto, userId: number, roleId: number): Promise<Shipment> {
     let office: Office;
     let senderId: number;
+    let receiverCustomer: Customer | null = null;
 
     if (roleId === 3) {
       const customer = await this.customerRepository.findOne({ where: { userId } });
@@ -84,10 +92,22 @@ export class ShipmentsService {
       senderId = dto.senderCustomerId;
     }
 
+    if (!dto.receiverName && !dto.receiverCustomerId) {
+      throw new BadRequestException('receiverName or receiverCustomerId is required');
+    }
+
+    if (dto.receiverCustomerId) {
+      receiverCustomer = await this.customerRepository.findOne({ where: { id: dto.receiverCustomerId } });
+      if (!receiverCustomer) {
+        throw new NotFoundException(`Receiver customer ${dto.receiverCustomerId} not found`);
+      }
+    }
+
     const priceSnapshot = this.computePriceSnapshot(office, dto.weight, dto.deliveryMode);
 
     const shipment = new Shipment();
-    shipment.receiverName = dto.receiverName;
+	    shipment.receiverName = dto.receiverName ?? (receiverCustomer ? `${receiverCustomer.firstName} ${receiverCustomer.lastName}`.trim() : undefined);
+	    shipment.receiverCustomerId = receiverCustomer?.id;
     shipment.deliveryMode = dto.deliveryMode;
     shipment.weight = dto.weight;
     shipment.description = dto.description;
@@ -110,21 +130,25 @@ export class ShipmentsService {
   }
 
   public async findAll(): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ relations: ['sender', 'office'] });
+    return await this.shipmentRepository.find({ relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findOne(id: number): Promise<Shipment | null> {
-    return await this.shipmentRepository.findOne({ where: { id }, relations: ['sender', 'office'] });
+    return await this.shipmentRepository.findOne({ where: { id }, relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findByTrackingNumber(trackingNumber: string): Promise<Shipment | null> {
-    return await this.shipmentRepository.findOne({ where: { trackingNumber }, relations: ['sender', 'office'] });
+    return await this.shipmentRepository.findOne({ where: { trackingNumber }, relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findByCustomerUserId(userId: number): Promise<Shipment[]> {
     const customer = await this.customerRepository.findOne({ where: { userId } });
     if (!customer) return [];
-    return this.shipmentRepository.find({ where: { senderId: customer.id }, relations: ['sender', 'office'] });
+    const where: FindOptionsWhere<Shipment>[] = [
+      { senderId: customer.id },
+      { receiverCustomerId: customer.id },
+    ];
+    return this.shipmentRepository.find({ where, relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findByEmployeeUserId(userId: number): Promise<Shipment[]> {
@@ -134,17 +158,17 @@ export class ShipmentsService {
   }
 
   public async findBySenderId(senderId: number): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ where: { senderId }, relations: ['sender', 'office'] });
+	    return await this.shipmentRepository.find({ where: { senderId }, relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findByOfficeId(officeId: number): Promise<Shipment[]> {
-    return await this.shipmentRepository.find({ where: { officeId }, relations: ['sender', 'office'] });
+	    return await this.shipmentRepository.find({ where: { officeId }, relations: ['sender', 'receiverCustomer', 'office'] });
   }
 
   public async findOneForCustomer(id: number, userId: number): Promise<Shipment | null> {
     const shipment = this.ensureExisting(await this.findOne(id), id);
     const customerId = await this.getCustomerIdByUserId(userId);
-    this.ensureShipmentOwnedByCustomer(shipment, customerId);
+	    this.ensureShipmentVisibleToCustomer(shipment, customerId);
     return shipment;
   }
 

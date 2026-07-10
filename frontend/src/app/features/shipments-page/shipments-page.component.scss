@@ -1,0 +1,57 @@
+.shipments-page__toolbar > *:last-child {
+  width: min(100%, 22rem);
+}
+
+.shipments-page__card {
+  overflow: hidden;
+}
+
+.shipments-page__grid-shell {
+  overflow-x: auto;
+}
+
+.shipments-page__grid {
+  min-width: 60rem;
+}
+
+.shipments-page__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.shipments-page__status--pending {
+  color: #9a6700;
+  background: #fff3cd;
+}
+
+.shipments-page__status--in-transit {
+  color: #0a58ca;
+  background: #cfe2ff;
+}
+
+.shipments-page__status--delivered {
+  color: #146c43;
+  background: #d1e7dd;
+}
+
+.shipments-page__status--cancelled {
+  color: #b02a37;
+  background: #f8d7da;
+}
+
+@media (max-width: 767.98px) {
+  .shipments-page__toolbar > * {
+    width: 100%;
+  }
+
+  .shipments-page__grid {
+    min-width: 46rem;
+  }
+}

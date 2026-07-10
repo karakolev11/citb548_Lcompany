@@ -23,7 +23,6 @@ export class ShipmentsController {
   findAll(@Request() req: any) {
     const { roleId, sub: userId } = req.user;
     if (roleId === 3) return this.shipmentsService.findByCustomerUserId(userId);
-    if (roleId === 2) return this.shipmentsService.findByEmployeeUserId(userId);
     return this.shipmentsService.findAll();
   }
 

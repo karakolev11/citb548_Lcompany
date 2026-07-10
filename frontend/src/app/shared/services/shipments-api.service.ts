@@ -5,7 +5,8 @@ import { Customer, Shipment } from '../../models/domain.models';
 import { DeliveryMode } from '../../utils/delivery-mode.enum';
 
 export interface CreateShipmentPayload {
-  receiverName: string;
+  receiverName?: string;
+  receiverCustomerId?: number;
   deliveryMode: DeliveryMode;
   weight: number;
   officeId?: number;
@@ -39,6 +40,10 @@ export class ShipmentsApiService {
 
   public cancel(id: number): Observable<Shipment> {
     return this.http.patch<Shipment>(`/api/shipments/${id}/cancel`, {});
+  }
+
+  public deleteShipment(id: number): Observable<boolean> {
+    return this.http.delete<boolean>(`/api/shipments/${id}`);
   }
 
   public getCustomers(): Observable<Customer[]> {

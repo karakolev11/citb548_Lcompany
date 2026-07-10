@@ -6,6 +6,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { UserRoles } from 'src/common/enums/user-roles.enum';
+import { CreateCustomerWithUserDto } from '../dto/create-customer-with-user.dto';
 
 @Controller('customers')
 @UseGuards(AuthGuard, RoleGuard)
@@ -16,6 +17,12 @@ export class CustomersController {
   @Roles(UserRoles.ADMIN, UserRoles.EMPLOYEE)
   create(@Body() createCustomerDto: CreateCustomerDto) {
     return this.customerService.create(createCustomerDto);
+  }
+
+  @Post('with-user')
+  @Roles(UserRoles.ADMIN)
+  createWithUser(@Body() payload: CreateCustomerWithUserDto) {
+    return this.customerService.createWithUser(payload);
   }
 
   @Get()

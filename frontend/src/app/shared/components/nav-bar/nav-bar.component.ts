@@ -19,6 +19,7 @@ export class NavBarComponent {
   private readonly authService = inject(AuthService);
 
   navClass = 'navbar-white-bg';
+  menuOpen = false;
 
   public isAdmin(): boolean {
     return this.authService.hasAnyRole([1]);
@@ -33,7 +34,16 @@ export class NavBarComponent {
   }
 
   public logout(): void {
+    this.menuOpen = false;
     this.authService.logout();
+  }
+
+  public toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  public closeMenu(): void {
+    this.menuOpen = false;
   }
 
   public windowScroll(): void {

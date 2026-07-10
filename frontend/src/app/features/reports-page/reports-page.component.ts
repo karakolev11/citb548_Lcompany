@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, NgFor, NgIf, CurrencyPipe } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../auth/services/auth.service';
 import {
@@ -9,6 +9,7 @@ import {
   CompanyRevenueItem,
   CustomerReportItem,
   EmployeeReportItem,
+  RevenuePeriodFilters,
   ShipmentFilters,
 } from '../../shared/services/reports-api.service';
 import { Shipment } from '../../models/domain.models';
@@ -18,6 +19,7 @@ import { Shipment } from '../../models/domain.models';
   standalone: true,
   imports: [NgIf, NgFor, AsyncPipe, CurrencyPipe, ReactiveFormsModule],
   templateUrl: './reports-page.component.html',
+  styleUrl: './reports-page.component.scss',
 })
 export class ReportsPageComponent implements OnInit {
   private readonly reportsApi = inject(ReportsApiService);
@@ -31,10 +33,23 @@ export class ReportsPageComponent implements OnInit {
     status: [''],
     officeId: [null as number | null],
     senderId: [null as number | null],
-    receiverId: [null as number | null],
+  });
+
+  reportLookupForm = this.fb.group({
+    employeeId: [null as number | null],
+    customerId: [null as number | null],
+  });
+
+  revenuePeriodForm = this.fb.group({
+    from: [''],
+    to: [''],
   });
 
   shipments$!: Observable<Shipment[]>;
+  shipmentsByEmployee$!: Observable<Shipment[]>;
+  sentButNotReceived$!: Observable<Shipment[]>;
+  shipmentsSentByCustomer$!: Observable<Shipment[]>;
+  shipmentsReceivedByCustomer$!: Observable<Shipment[]>;
   officeRevenue$!: Observable<OfficeRevenueItem[]>;
   companyRevenue$!: Observable<CompanyRevenueItem[]>;
   customers$!: Observable<CustomerReportItem[]>;
@@ -44,13 +59,14 @@ export class ReportsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadShipments();
+    this.sentButNotReceived$ = this.reportsApi.getSentButNotReceivedShipments();
+    this.shipmentsByEmployee$ = of([]);
+    this.shipmentsSentByCustomer$ = of([]);
+    this.shipmentsReceivedByCustomer$ = of([]);
     if (this.isBackoffice) {
-      this.officeRevenue$ = this.reportsApi.getOfficeRevenue();
+      this.loadRevenueReports();
       this.customers$ = this.reportsApi.getCustomers();
       this.employees$ = this.reportsApi.getEmployees();
-    }
-    if (this.isAdmin) {
-      this.companyRevenue$ = this.reportsApi.getCompanyRevenue();
     }
   }
 
@@ -64,8 +80,51 @@ export class ReportsPageComponent implements OnInit {
       status: v.status || undefined,
       officeId: v.officeId ?? undefined,
       senderId: v.senderId ?? undefined,
-      receiverId: v.receiverId ?? undefined,
     };
     this.shipments$ = this.reportsApi.getShipments(filters);
+  }
+
+  applyRevenueFilters(): void {
+    this.loadRevenueReports();
+  }
+
+  loadEmployeeShipmentReport(): void {
+    const employeeId = this.reportLookupForm.value.employeeId ?? null;
+    this.shipmentsByEmployee$ = employeeId ? this.reportsApi.getShipmentsByEmployee(employeeId) : of([]);
+  }
+
+  loadCustomerShipmentReports(): void {
+    const customerId = this.reportLookupForm.value.customerId ?? null;
+    if (!customerId) {
+      this.shipmentsSentByCustomer$ = of([]);
+      this.shipmentsReceivedByCustomer$ = of([]);
+      return;
+    }
+
+    this.shipmentsSentByCustomer$ = this.reportsApi.getShipmentsSentByCustomer(customerId);
+    this.shipmentsReceivedByCustomer$ = this.reportsApi.getShipmentsReceivedByCustomer(customerId);
+  }
+
+  shipmentReceiverLabel(shipment: Shipment): string {
+    if (shipment.receiverCustomer) {
+      return `${shipment.receiverCustomer.firstName} ${shipment.receiverCustomer.lastName}`.trim();
+    }
+    return shipment.receiverName ?? '—';
+  }
+
+  formatEmployeeType(employeeType: EmployeeReportItem['employeeType']): string {
+    return employeeType === 'office_staff' ? 'Office Staff' : 'Courier';
+  }
+
+  private loadRevenueReports(): void {
+    const filters: RevenuePeriodFilters = {
+      from: this.revenuePeriodForm.value.from || undefined,
+      to: this.revenuePeriodForm.value.to || undefined,
+    };
+
+    this.officeRevenue$ = this.reportsApi.getOfficeRevenue(filters);
+    if (this.isAdmin) {
+      this.companyRevenue$ = this.reportsApi.getCompanyRevenue(filters);
+    }
   }
 }

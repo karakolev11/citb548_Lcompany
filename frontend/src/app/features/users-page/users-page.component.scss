@@ -1,0 +1,30 @@
+.users-page__grid-shell {
+  overflow-x: auto;
+}
+
+.users-page__grid {
+  min-width: 52rem;
+}
+
+.users-page__filter {
+  width: min(100%, 22rem);
+}
+
+@media (max-width: 767.98px) {
+  .users-page__tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .users-page__tabs .btn {
+    flex: 1 1 50%;
+  }
+
+  .users-page__toolbar > * {
+    width: 100%;
+  }
+
+  .users-page__grid {
+    min-width: 44rem;
+  }
+}

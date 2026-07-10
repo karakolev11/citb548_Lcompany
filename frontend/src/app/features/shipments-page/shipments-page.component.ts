@@ -24,6 +24,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, AgGridAngular],
   templateUrl: './shipments-page.component.html',
+  styleUrl: './shipments-page.component.scss',
 })
 export class ShipmentsPageComponent implements OnInit {
   private readonly shipmentsApi = inject(ShipmentsApiService);
@@ -46,7 +47,8 @@ export class ShipmentsPageComponent implements OnInit {
   readonly DeliveryMode = DeliveryMode;
 
   readonly form = this.fb.group({
-    receiverName: ['', Validators.required],
+    receiverName: [''],
+    receiverCustomerId: [null as number | null],
     deliveryMode: [DeliveryMode.OFFICE, Validators.required],
     weight: [null as number | null, [Validators.required, Validators.min(0.1)]],
     officeId: [null as number | null],
@@ -61,11 +63,31 @@ export class ShipmentsPageComponent implements OnInit {
   get isAdmin(): boolean { return this.authService.hasAnyRole([1]); }
   get isEmployee(): boolean { return this.authService.hasAnyRole([2]); }
   get isCustomer(): boolean { return this.authService.hasAnyRole([3]); }
+  get canSelectRegisteredReceiver(): boolean { return this.isAdmin || this.isEmployee; }
   get isAddressMode(): boolean { return this.form.get('deliveryMode')?.value === DeliveryMode.ADDRESS; }
+
+  readonly statusStyleByStatus: Record<ShipmentStatus, string> = {
+    [ShipmentStatus.PENDING]: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;text-transform:capitalize;color:#9a6700;background:#fff3cd;',
+    [ShipmentStatus.IN_TRANSIT]: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;text-transform:capitalize;color:#0a58ca;background:#cfe2ff;',
+    [ShipmentStatus.DELIVERED]: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;text-transform:capitalize;color:#146c43;background:#d1e7dd;',
+    [ShipmentStatus.CANCELLED]: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;text-transform:capitalize;color:#b02a37;background:#f8d7da;',
+  };
 
   readonly columnDefs: ColDef[] = [
     { headerName: 'Tracking #', field: 'trackingNumber', flex: 1.5 },
-    { headerName: 'Status', field: 'status', flex: 1 },
+    {
+      headerName: 'Status',
+      field: 'status',
+      flex: 1,
+      cellRenderer: (params: ICellRendererParams) => {
+        const status = params.data?.status as ShipmentStatus | undefined;
+        const label = status?.replace('_', ' ') ?? '—';
+        const style = status
+          ? this.statusStyleByStatus[status]
+          : 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;text-transform:capitalize;background:#eef2f6;color:#4b5563;';
+        return `<span style="${style}">${label}</span>`;
+      },
+    },
     {
       headerName: 'Sender',
       flex: 1.2,
@@ -74,7 +96,7 @@ export class ShipmentsPageComponent implements OnInit {
         return s ? `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() : '—';
       },
     },
-    { headerName: 'Receiver', field: 'receiverName', flex: 1.2, valueGetter: (p) => p.data?.receiverName ?? '—' },
+    { headerName: 'Receiver', field: 'receiverName', flex: 1.2, valueGetter: (p) => this.getReceiverLabel(p.data) },
     { headerName: 'Office', flex: 1, valueGetter: (p) => p.data?.office?.name ?? '—' },
     { headerName: 'Mode', flex: 0.8, valueGetter: (p) => p.data?.deliveryMode ?? '—' },
     { headerName: 'Weight (kg)', field: 'weight', flex: 0.8, valueGetter: (p) => p.data?.weight ?? '—' },
@@ -91,6 +113,9 @@ export class ShipmentsPageComponent implements OnInit {
         if ((this.isAdmin || this.isEmployee) && s.status === ShipmentStatus.IN_TRANSIT) {
           btns.push(`<button class="btn btn-sm btn-outline-success me-1" data-action="deliver" data-id="${s.id}">Delivered</button>`);
         }
+        if (this.isAdmin) {
+          btns.push(`<button class="btn btn-sm btn-outline-secondary me-1" data-action="delete" data-id="${s.id}">Delete</button>`);
+        }
         if (s.status === ShipmentStatus.PENDING) {
           btns.push(`<button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${s.id}">Cancel</button>`);
         }
@@ -103,12 +128,15 @@ export class ShipmentsPageComponent implements OnInit {
         const action = btn.dataset['action'];
         if (action === 'transit') this.markInTransit(id);
         if (action === 'deliver') this.markDelivered(id);
+        if (action === 'delete') this.deleteShipment(id);
         if (action === 'cancel') this.cancelShipment(id);
       },
     },
   ];
 
   ngOnInit(): void {
+    this.applyReceiverValidators();
+    this.form.get('receiverCustomerId')?.valueChanges.subscribe(() => this.applyReceiverValidators());
     this.companyApi.getCompanies().subscribe(companies => {
       this.offices = companies.flatMap(c => c.offices ?? []);
     });
@@ -127,7 +155,8 @@ export class ShipmentsPageComponent implements OnInit {
   toggleCreateForm(): void {
     this.showCreateForm = !this.showCreateForm;
     if (this.showCreateForm) {
-      this.form.reset({ receiverName: '', deliveryMode: DeliveryMode.OFFICE, weight: null, officeId: null, senderCustomerId: null, description: '', deliveredAddress: '', deliveredCity: '', deliveredZip: '', deliveredCountry: '' });
+      this.form.reset({ receiverName: '', receiverCustomerId: null, deliveryMode: DeliveryMode.OFFICE, weight: null, officeId: null, senderCustomerId: null, description: '', deliveredAddress: '', deliveredCity: '', deliveredZip: '', deliveredCountry: '' });
+      this.applyReceiverValidators();
       this.formError = '';
     }
   }
@@ -140,7 +169,8 @@ export class ShipmentsPageComponent implements OnInit {
     }
     const v = this.form.getRawValue();
     const payload: CreateShipmentPayload = {
-      receiverName: (v.receiverName ?? '').trim(),
+      receiverName: (v.receiverName ?? '').trim() || undefined,
+      receiverCustomerId: v.receiverCustomerId ? Number(v.receiverCustomerId) : undefined,
       deliveryMode: v.deliveryMode as DeliveryMode,
       weight: Number(v.weight),
       officeId: v.officeId ? Number(v.officeId) : undefined,
@@ -194,11 +224,43 @@ export class ShipmentsPageComponent implements OnInit {
     });
   }
 
+  deleteShipment(id: number): void {
+    if (!confirm('Delete shipment?')) {
+      return;
+    }
+    this.shipmentsApi.deleteShipment(id).subscribe({
+      next: () => { this.setFeedback('Shipment deleted.', 'success'); this.reload(); },
+      error: () => this.setFeedback('Failed to delete shipment.', 'error'),
+    });
+  }
+
   private reload(): void {
     this.shipmentsApi.getShipments().subscribe({
       next: (s) => { this.shipments = s; this.rowData = s; },
       error: () => this.setFeedback('Failed to load shipments.', 'error'),
     });
+  }
+
+  private applyReceiverValidators(): void {
+    const receiverNameControl = this.form.get('receiverName');
+    const receiverCustomerId = this.form.get('receiverCustomerId')?.value;
+    if (!receiverNameControl) {
+      return;
+    }
+
+    if (receiverCustomerId) {
+      receiverNameControl.clearValidators();
+    } else {
+      receiverNameControl.setValidators([Validators.required]);
+    }
+    receiverNameControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private getReceiverLabel(shipment: Shipment | undefined): string {
+    if (shipment?.receiverCustomer) {
+      return `${shipment.receiverCustomer.firstName ?? ''} ${shipment.receiverCustomer.lastName ?? ''}`.trim();
+    }
+    return shipment?.receiverName ?? '—';
   }
 
   private setFeedback(message: string, type: 'success' | 'error'): void {

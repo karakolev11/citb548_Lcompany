@@ -2,9 +2,14 @@ import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from '
 import { DeliveryMode } from '../enums/delivery-mode.enum';
 
 export class CreateShipmentDto {
+	@IsOptional()
 	@IsString()
 	@IsNotEmpty()
-	receiverName: string;
+	receiverName?: string;
+
+	@IsOptional()
+	@IsNumber()
+	receiverCustomerId?: number;
 
 	@IsEnum(DeliveryMode)
 	deliveryMode: DeliveryMode;

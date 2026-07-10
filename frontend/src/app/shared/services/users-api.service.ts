@@ -3,12 +3,40 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Customer, Employee } from '../../models/domain.models';
 
+export interface CreateCustomerWithUserPayload {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  companyId?: number;
+}
+
+export interface UpdateCustomerPayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  companyId?: number;
+}
+
 export interface CreateEmployeeWithUserPayload {
   username: string;
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  employeeType: 'courier' | 'office_staff';
   phone?: string;
   department?: string;
   jobTitle?: string;
@@ -21,6 +49,7 @@ export interface UpdateEmployeeWithUserPayload {
   email?: string;
   firstName?: string;
   lastName?: string;
+  employeeType?: 'courier' | 'office_staff';
   phone?: string;
   department?: string;
   jobTitle?: string;
@@ -34,6 +63,14 @@ export class UsersApiService {
 
   public getCustomers(): Observable<Customer[]> {
     return this.http.get<Customer[]>('/api/customers');
+  }
+
+  public createCustomerWithUser(payload: CreateCustomerWithUserPayload): Observable<Customer> {
+    return this.http.post<Customer>('/api/customers/with-user', payload);
+  }
+
+  public updateCustomer(id: number, payload: UpdateCustomerPayload): Observable<Customer> {
+    return this.http.patch<Customer>(`/api/customers/${id}`, payload);
   }
 
   public deleteCustomer(id: number): Observable<boolean> {

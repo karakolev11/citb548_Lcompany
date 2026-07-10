@@ -6,11 +6,14 @@ import { ShipmentStatus } from './enums/shipment-status.enum';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Office } from 'src/company/entities/office.entity';
 import { Customer } from 'src/users/entities/customer.entity';
+import { Employee } from 'src/users/entities/employee.entity';
+import { DeliveryMode } from './enums/delivery-mode.enum';
 
 describe('ShipmentsService', () => {
   let service: ShipmentsService;
   const repositoryMock = {
     findOne: jest.fn(),
+    find: jest.fn(),
     save: jest.fn(),
     softDelete: jest.fn(),
   };
@@ -18,6 +21,9 @@ describe('ShipmentsService', () => {
     findOne: jest.fn(),
   };
   const customerRepositoryMock = {
+    findOne: jest.fn(),
+  };
+  const employeeRepositoryMock = {
     findOne: jest.fn(),
   };
 
@@ -28,6 +34,7 @@ describe('ShipmentsService', () => {
         { provide: getRepositoryToken(Shipment), useValue: repositoryMock },
         { provide: getRepositoryToken(Office), useValue: officeRepositoryMock },
         { provide: getRepositoryToken(Customer), useValue: customerRepositoryMock },
+        { provide: getRepositoryToken(Employee), useValue: employeeRepositoryMock },
       ],
     }).compile();
 
@@ -85,21 +92,60 @@ describe('ShipmentsService', () => {
   });
 
   it('rejects customer update for shipment not owned by customer', async () => {
-    repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.PENDING, senderId: 50, receiverId: 51 });
+    repositoryMock.findOne.mockResolvedValue({ id: 1, status: ShipmentStatus.PENDING, senderId: 50, receiverCustomerId: 51 });
     customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
 
     await expect(service.updateByCustomer(1, { description: 'new' }, 10)).rejects.toThrow(ForbiddenException);
   });
 
-  it('sets order price snapshot from office when creating shipment', async () => {
-    officeRepositoryMock.findOne.mockResolvedValue({ id: 5, orderPrice: 42 });
+  it('creates shipment with computed price snapshot and receiver customer fallback name', async () => {
+    officeRepositoryMock.findOne.mockResolvedValue({ id: 5, pricePerKg: 10, officeSurcharge: 4, addressSurcharge: 8 });
+    customerRepositoryMock.findOne
+      .mockResolvedValueOnce({ id: 11, userId: 10 })
+      .mockResolvedValueOnce({ id: 7, firstName: 'Jane', lastName: 'Receiver' });
     repositoryMock.save.mockImplementation(async (entity) => entity);
 
     const result = await service.create({
+      receiverCustomerId: 7,
       officeId: 5,
+      deliveryMode: DeliveryMode.OFFICE,
       weight: 3,
-    });
+    }, 10, 3);
 
-    expect(result.orderPriceSnapshot).toBe(42);
+    expect(result.priceSnapshot).toBe(34);
+    expect(result.receiverCustomerId).toBe(7);
+    expect(result.receiverName).toBe('Jane Receiver');
+  });
+
+  it('returns shipments where customer is sender or receiver', async () => {
+    customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
+    repositoryMock.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+    const result = await service.findByCustomerUserId(10);
+
+    expect(repositoryMock.find).toHaveBeenCalledWith(expect.objectContaining({
+      where: [{ senderId: 99 }, { receiverCustomerId: 99 }],
+    }));
+    expect(result).toHaveLength(2);
+  });
+
+  it('allows customer to read shipment where they are receiver', async () => {
+    repositoryMock.findOne.mockResolvedValue({ id: 1, receiverCustomerId: 99, senderId: 50, status: ShipmentStatus.PENDING });
+    customerRepositoryMock.findOne.mockResolvedValue({ id: 99, userId: 10 });
+
+    const result = await service.findOneForCustomer(1, 10);
+
+    expect(result?.id).toBe(1);
+  });
+
+  it('requires receiver name or receiver customer when creating shipment', async () => {
+    officeRepositoryMock.findOne.mockResolvedValue({ id: 5, pricePerKg: 10, officeSurcharge: 4, addressSurcharge: 8 });
+    customerRepositoryMock.findOne.mockResolvedValue({ id: 11, userId: 10 });
+
+    await expect(service.create({
+      officeId: 5,
+      deliveryMode: DeliveryMode.OFFICE,
+      weight: 3,
+    }, 10, 3)).rejects.toThrow(BadRequestException);
   });
 });

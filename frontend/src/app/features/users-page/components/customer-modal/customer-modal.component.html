@@ -3,18 +3,18 @@
   <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ mode === 'create' ? 'Create Employee' : 'Edit Employee' }}</h5>
+        <h5 class="modal-title">{{ mode === 'create' ? 'Create Customer' : 'Edit Customer' }}</h5>
         <button type="button" class="btn-close" (click)="close()" [disabled]="submitting"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="error" class="alert alert-danger py-2">{{ error }}</div>
 
         <form [formGroup]="form" class="row g-2">
-          <div class="col-md-6">
+          <div class="col-md-6" *ngIf="mode === 'create'">
             <label class="form-label">Username</label>
             <input class="form-control" formControlName="username" [disabled]="submitting">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6" *ngIf="mode === 'create'">
             <label class="form-label">Email</label>
             <input class="form-control" type="email" formControlName="email" [disabled]="submitting">
           </div>
@@ -22,6 +22,7 @@
             <label class="form-label">Password</label>
             <input class="form-control" type="password" formControlName="password" [disabled]="submitting">
           </div>
+          <div class="col-md-6" *ngIf="mode !== 'create'"></div>
           <div class="col-md-6">
             <label class="form-label">First Name</label>
             <input class="form-control" formControlName="firstName" [disabled]="submitting">
@@ -31,52 +32,42 @@
             <input class="form-control" formControlName="lastName" [disabled]="submitting">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Employee Type</label>
-            <select class="form-select" formControlName="employeeType" [disabled]="submitting">
-              <option value="office_staff">Office Staff</option>
-              <option value="courier">Courier</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Department</label>
-            <input class="form-control" formControlName="department" [disabled]="submitting">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Job Title</label>
-            <input class="form-control" formControlName="jobTitle" [disabled]="submitting">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Employee ID</label>
-            <input class="form-control" formControlName="employeeId" [disabled]="true" placeholder="Generated automatically">
-            <div class="form-text">Generated automatically after creation.</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Company</label>
-            <select class="form-select" formControlName="companyId" [disabled]="submitting">
-              <option [ngValue]="null">Select company...</option>
-              <option *ngFor="let company of companies" [ngValue]="company.id">{{ company.name }}</option>
-            </select>
-          </div>
-          <div class="col-md-6">
             <label class="form-label">Phone</label>
             <input class="form-control" formControlName="phone" [disabled]="submitting">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Office</label>
-            <select class="form-select" formControlName="officeId" [disabled]="submitting || !form.get('companyId')?.value">
-              <option [ngValue]="null">Select office...</option>
-              <option *ngFor="let office of officesByCompany" [ngValue]="office.id">{{ office.name }}</option>
+            <label class="form-label">Company</label>
+            <select class="form-select" formControlName="companyId" [disabled]="submitting">
+              <option [ngValue]="null">No company</option>
+              <option *ngFor="let company of companies" [ngValue]="company.id">{{ company.name }}</option>
             </select>
-            <div class="text-danger small mt-1" *ngIf="!selectedCompanyHasOffices && form.get('companyId')?.value">
-              Selected company has no offices.
-            </div>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Address</label>
+            <input class="form-control" formControlName="address" [disabled]="submitting">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">City</label>
+            <input class="form-control" formControlName="city" [disabled]="submitting">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">State</label>
+            <input class="form-control" formControlName="state" [disabled]="submitting">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Zip Code</label>
+            <input class="form-control" formControlName="zipCode" [disabled]="submitting">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Country</label>
+            <input class="form-control" formControlName="country" [disabled]="submitting">
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" (click)="close()" [disabled]="submitting">Cancel</button>
         <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="submitting">
-          {{ submitting ? 'Saving...' : (mode === 'create' ? 'Create Employee' : 'Save Changes') }}
+          {{ submitting ? 'Saving...' : (mode === 'create' ? 'Create Customer' : 'Save Changes') }}
         </button>
       </div>
     </div>

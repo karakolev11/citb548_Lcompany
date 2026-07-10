@@ -34,6 +34,7 @@ export class EmployeeService {
     employee.department = createEmployeeDto.department;
     employee.jobTitle = createEmployeeDto.jobTitle;
     employee.employeeId = createEmployeeDto.employeeId;
+    employee.employeeType = createEmployeeDto.employeeType;
     employee.userId = createEmployeeDto.userId;
     employee.officeId = office.id;
     employee.companyId = office.companyId;
@@ -69,6 +70,7 @@ export class EmployeeService {
         department: payload.department,
         jobTitle: payload.jobTitle,
         employeeId: payload.employeeId,
+        employeeType: payload.employeeType,
         userId: savedUser.id,
         officeId: office.id,
         companyId: office.companyId,

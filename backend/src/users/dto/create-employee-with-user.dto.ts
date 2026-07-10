@@ -1,4 +1,5 @@
-import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { EmployeeType } from '../enums/employee-type.enum';
 
 export class CreateEmployeeWithUserDto {
     @IsString()
@@ -35,6 +36,9 @@ export class CreateEmployeeWithUserDto {
     @IsOptional()
     @IsString()
     employeeId?: string;
+
+    @IsEnum(EmployeeType)
+    employeeType!: EmployeeType;
 
     @IsInt()
     officeId!: number;

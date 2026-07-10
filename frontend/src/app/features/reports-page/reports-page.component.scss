@@ -1,0 +1,30 @@
+.reports-page__card {
+  overflow: hidden;
+}
+
+.reports-page__table-wrap {
+  overflow-x: auto;
+}
+
+.reports-page table {
+  margin-bottom: 0;
+  min-width: 38rem;
+}
+
+@media (max-width: 767.98px) {
+  .reports-page {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .reports-page .card-body,
+  .reports-page .card-header {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .reports-page table {
+    min-width: 32rem;
+    font-size: 0.875rem;
+  }
+}

@@ -1,4 +1,4 @@
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 shipments-page">
 
   <div *ngIf="feedbackMessage" class="alert mb-3"
     [class.alert-success]="feedbackType === 'success'"
@@ -7,25 +7,34 @@
   </div>
 
   <!-- Action bar -->
-  <div class="d-flex align-items-center gap-2 mb-3">
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap shipments-page__toolbar">
     <button class="btn btn-primary" (click)="toggleCreateForm()">
       {{ showCreateForm ? '✕ Close Form' : '+ Create Shipment' }}
     </button>
-    <input class="form-control w-auto" placeholder="Quick filter..." (input)="onQuickFilter($event)">
+    <input class="form-control shipments-page__filter" placeholder="Quick filter..." (input)="onQuickFilter($event)">
   </div>
 
   <!-- Create shipment card (collapsible) -->
-  <div class="card mb-3" *ngIf="showCreateForm">
+  <div class="card mb-3 shipments-page__card" *ngIf="showCreateForm">
     <div class="card-header"><strong>New Shipment</strong></div>
     <div class="card-body">
       <div *ngIf="formError" class="alert alert-danger">{{ formError }}</div>
       <form [formGroup]="form" class="row g-3">
 
         <div class="col-md-4">
-          <label class="form-label">Receiver Name <span class="text-danger">*</span></label>
+          <label class="form-label">Receiver Name <span class="text-danger" *ngIf="!form.get('receiverCustomerId')?.value">*</span></label>
           <input class="form-control" formControlName="receiverName" placeholder="Full name"
             [class.is-invalid]="form.get('receiverName')?.invalid && form.get('receiverName')?.touched">
-          <div class="invalid-feedback">Required.</div>
+          <div class="form-text">Use this for manual receivers, or leave it blank if you select a registered receiver below.</div>
+          <div class="invalid-feedback">Required when no registered receiver is selected.</div>
+        </div>
+
+        <div class="col-md-4" *ngIf="canSelectRegisteredReceiver">
+          <label class="form-label">Registered Receiver Customer</label>
+          <select class="form-select" formControlName="receiverCustomerId">
+            <option [ngValue]="null">Manual receiver name</option>
+            <option *ngFor="let c of customers" [ngValue]="c.id">{{ c.firstName }} {{ c.lastName }}</option>
+          </select>
         </div>
 
         <div class="col-md-4">
@@ -96,12 +105,15 @@
   </div>
 
   <!-- Shipments grid -->
-  <ag-grid-angular
-    style="width: 100%; height: 520px;"
-    [rowData]="rowData"
-    [columnDefs]="columnDefs"
-    [animateRows]="true"
-    (gridReady)="onGridReady($event)">
-  </ag-grid-angular>
+  <div class="shipments-page__grid-shell">
+    <ag-grid-angular
+      class="shipments-page__grid"
+      style="width: 100%; height: 520px;"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [animateRows]="true"
+      (gridReady)="onGridReady($event)">
+    </ag-grid-angular>
+  </div>
 
 </div>

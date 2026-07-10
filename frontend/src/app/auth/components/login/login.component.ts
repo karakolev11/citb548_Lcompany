@@ -56,6 +56,7 @@ export class LoginComponent {
     this.authService.login(payload).subscribe({
       error: (error: HttpErrorResponse) => {
         this.authError = error.error?.message ?? 'Unable to sign in. Please try again.';
+        this.form.reset({ username: '', password: '' });
       }
     });
   }
