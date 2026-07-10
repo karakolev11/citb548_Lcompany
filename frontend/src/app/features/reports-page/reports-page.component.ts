@@ -12,7 +12,9 @@ import {
   RevenuePeriodFilters,
   ShipmentFilters,
 } from '../../shared/services/reports-api.service';
-import { Shipment } from '../../models/domain.models';
+import { CompanyApiService } from '../../shared/services/company-api.service';
+import { UsersApiService } from '../../shared/services/users-api.service';
+import { Customer, Employee, Office, Shipment } from '../../models/domain.models';
 
 @Component({
   selector: 'app-reports-page',
@@ -25,6 +27,8 @@ export class ReportsPageComponent implements OnInit {
   private readonly reportsApi = inject(ReportsApiService);
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly companyApi = inject(CompanyApiService);
+  private readonly usersApi = inject(UsersApiService);
 
   readonly isAdmin = this.authService.hasAnyRole([1]);
   readonly isBackoffice = this.authService.hasAnyRole([1, 2]);
@@ -53,9 +57,20 @@ export class ReportsPageComponent implements OnInit {
   officeRevenue$!: Observable<OfficeRevenueItem[]>;
   companyRevenue$!: Observable<CompanyRevenueItem[]>;
   customers$!: Observable<CustomerReportItem[]>;
-  employees$!: Observable<EmployeeReportItem[]>;
+  employeeReportRows: EmployeeReportItem[] = [];
+  filteredEmployeeReportRows: EmployeeReportItem[] = [];
+
+  offices: Office[] = [];
+  customers: Customer[] = [];
+  employees: Employee[] = [];
+  selectedEmployeeType: '' | 'courier' | 'office_staff' = '';
 
   readonly statusOptions = ['', 'PENDING', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'];
+  readonly employeeTypeOptions: Array<{ value: '' | 'courier' | 'office_staff'; label: string }> = [
+    { value: '', label: 'All types' },
+    { value: 'office_staff', label: 'Office Staff' },
+    { value: 'courier', label: 'Courier' },
+  ];
 
   ngOnInit(): void {
     this.loadShipments();
@@ -64,9 +79,15 @@ export class ReportsPageComponent implements OnInit {
     this.shipmentsSentByCustomer$ = of([]);
     this.shipmentsReceivedByCustomer$ = of([]);
     if (this.isBackoffice) {
+      this.companyApi.getOffices().subscribe(offices => { this.offices = offices; });
+      this.usersApi.getCustomers().subscribe(customers => { this.customers = customers; });
+      this.usersApi.getEmployees().subscribe(employees => { this.employees = employees; });
       this.loadRevenueReports();
       this.customers$ = this.reportsApi.getCustomers();
-      this.employees$ = this.reportsApi.getEmployees();
+      this.reportsApi.getEmployees().subscribe(rows => {
+        this.employeeReportRows = rows;
+        this.loadEmployeesReport();
+      });
     }
   }
 
@@ -114,6 +135,18 @@ export class ReportsPageComponent implements OnInit {
 
   formatEmployeeType(employeeType: EmployeeReportItem['employeeType']): string {
     return employeeType === 'office_staff' ? 'Office Staff' : 'Courier';
+  }
+
+  onEmployeeTypeFilterChange(value: string): void {
+    this.selectedEmployeeType = (value === 'courier' || value === 'office_staff') ? value : '';
+    this.loadEmployeesReport();
+  }
+
+  private loadEmployeesReport(): void {
+    const employeeType = this.selectedEmployeeType || undefined;
+    this.filteredEmployeeReportRows = employeeType
+      ? this.employeeReportRows.filter(row => row.employeeType === employeeType)
+      : this.employeeReportRows;
   }
 
   private loadRevenueReports(): void {

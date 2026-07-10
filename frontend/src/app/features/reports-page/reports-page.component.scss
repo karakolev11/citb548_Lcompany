@@ -6,6 +6,11 @@
   overflow-x: auto;
 }
 
+.reports-page__stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
 .reports-page table {
   margin-bottom: 0;
   min-width: 38rem;

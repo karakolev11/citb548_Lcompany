@@ -107,6 +107,11 @@ export class UsersPageComponent implements OnInit {
     companyId: [null as number | null],
   });
 
+  readonly employeeTypeStyleByType: Record<'courier' | 'office_staff', string> = {
+    courier: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;color:#0a58ca;background:#cfe2ff;',
+    office_staff: 'display:inline-flex;align-items:center;justify-content:center;min-width:7.5rem;padding:0.25rem 0.75rem;border-radius:999px;font-weight:700;font-size:0.8rem;color:#7a2e0b;background:#ffe5d0;',
+  };
+
   readonly employeeColumnDefs: ColDef[] = [
     {
       headerName: 'Name',
@@ -138,7 +143,12 @@ export class UsersPageComponent implements OnInit {
     {
       headerName: 'Type',
       flex: 1,
-      valueGetter: (params) => this.formatEmployeeType(params.data?.employeeType),
+      cellRenderer: (params: ICellRendererParams) => {
+        const employeeType = (params.data?.employeeType ?? 'office_staff') as 'courier' | 'office_staff';
+        const label = this.formatEmployeeType(employeeType);
+        const style = this.employeeTypeStyleByType[employeeType];
+        return `<span style="${style}">${label}</span>`;
+      },
     },
     {
       headerName: 'Department',
